@@ -1,9 +1,9 @@
 <?php
-$host = "postgresql-infinity1.alwaysdata.net";
+$host = "dpg-d1octeruibrs73ck17kg-a";
 $port = "5432";
-$dbname = "infinity1_db";
-$user = "infinity1";
-$password = "391082@Bk";
+$dbname = "smartlearn_db";
+$user = "smartlearn_user";
+$password = "pmlynWWOoOX6zYU3jxPWiqJLfEQX8pS6";
 
 try {
     $conn = new PDO("pgsql:host=$host;port=$port;dbname=$dbname", $user, $password);

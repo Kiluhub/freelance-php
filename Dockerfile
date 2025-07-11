@@ -1,3 +1,6 @@
+# Force cache bust
+ARG CACHE_BREAK=1
+
 # Use official PHP image with Apache
 FROM php:8.2-apache
 
@@ -12,8 +15,8 @@ RUN apt-get update && apt-get install -y \
 # Copy all your project files to the Apache root
 COPY . /var/www/html/
 
-# Set correct permissions (optional but recommended)
+# Set correct permissions
 RUN chown -R www-data:www-data /var/www/html
 
-# Expose port 80 (default for Apache)
+# Expose port 80
 EXPOSE 80

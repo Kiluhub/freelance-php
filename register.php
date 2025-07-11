@@ -1,8 +1,13 @@
 <?php
-session_start();
-require 'connect.php';
+session_start(); // Always start session at the top
 
-$error = '';
+require 'connect.php'; // Ensure this connects via PDO to PostgreSQL
+?>
+
+<?php include 'header.php'; ?>
+
+<?php
+$error = ''; // Error holder
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $name = trim($_POST['full_name']);
@@ -10,35 +15,68 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
 
     try {
-        $stmt = $conn->prepare("INSERT INTO users (full_name, email, password) VALUES (:name, :email, :password)");
-        $stmt->bindParam(':name', $name);
-        $stmt->bindParam(':email', $email);
-        $stmt->bindParam(':password', $password);
-        $stmt->execute();
+        // Step 1: Check if email already exists
+        $check = $conn->prepare("SELECT 1 FROM users WHERE email = :email LIMIT 1");
+        $check->bindParam(':email', $email);
+        $check->execute();
 
-        // ✅ REDIRECT before any HTML is output
-        header("Location: login.php");
-        exit();
+        if ($check->fetch()) {
+            $error = "⚠️ Email already exists. Try logging in.";
+        } else {
+            // Step 2: Insert new user
+            $stmt = $conn->prepare("INSERT INTO users (full_name, email, password) VALUES (:name, :email, :password)");
+            $stmt->bindParam(':name', $name);
+            $stmt->bindParam(':email', $email);
+            $stmt->bindParam(':password', $password);
+            $stmt->execute();
+
+            // Step 3: Redirect to login
+            header("Location: login.php");
+            exit();
+        }
     } catch (PDOException $e) {
-        $error = "Registration failed: " . $e->getMessage();
+        if (str_contains($e->getMessage(), 'duplicate key')) {
+            $error = "This email is already registered.";
+        } else {
+            $error = "Registration failed. Please try again.";
+        }
     }
 }
 ?>
 
-<!-- NO PHP ABOVE THIS LINE SHOULD OUTPUT ANYTHING BEFORE HEADER -->
-
-<?php include 'header.php'; ?>
 <!DOCTYPE html>
 <html>
 <head>
     <title>Register</title>
     <style>
         body { font-family: Arial, sans-serif; background: #f0f4f8; padding: 20px; }
-        .form-box { max-width: 400px; margin: auto; background: white; padding: 30px; box-shadow: 0 0 10px #ccc; border-radius: 8px; }
-        input, button { width: 100%; padding: 12px; margin-top: 10px; border-radius: 5px; border: 1px solid #ccc; }
-        button { background: black; color: white; border: none; cursor: pointer; }
+        .form-box {
+            max-width: 400px;
+            margin: auto;
+            background: white;
+            padding: 30px;
+            box-shadow: 0 0 10px #ccc;
+            border-radius: 8px;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        button {
+            margin-top: 20px;
+            background: black;
+            color: white;
+            padding: 12px;
+            width: 100%;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
         a { display: block; margin-top: 10px; text-align: center; }
-        .error { color: red; margin-top: 10px; }
+        .error { color: red; margin-top: 10px; text-align: center; }
     </style>
 </head>
 <body>
@@ -55,4 +93,5 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 </div>
 </body>
 </html>
+
 <?php include 'footer.php'; ?>

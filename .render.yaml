@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: smartlearn-web
+    env: php
+    plan: free
+    buildCommand: ""  # no build step for PHP
+    startCommand: ""  # uses Apache by default
+    rootDir: .        # your project root
+    autoDeploy: true
+    region: oregon
+
+databases:
+  - name: smartlearn-db
+    databaseName: smartlearn_iaqb
+    user: smartlearn_iaqb_user
+    plan: free
+    region: oregon

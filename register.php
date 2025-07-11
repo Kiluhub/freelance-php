@@ -1,30 +1,34 @@
 <?php
-session_start(); // Must come first, before any output
+session_start(); // Start session first
 
-require 'connect.php'; // Your DB connection file
+require 'connect.php'; // PDO connection to PostgreSQL
 ?>
 
 <?php include 'header.php'; ?>
 
 <?php
-$error = ''; // Initialize error variable
+$error = ''; // Error message placeholder
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $name = trim($_POST['full_name']);
     $email = trim($_POST['email']);
     $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
 
-    $stmt = $conn->prepare("INSERT INTO users (full_name, email, password) VALUES (?, ?, ?)");
-    $stmt->bind_param("sss", $name, $email, $password);
+    try {
+        // Use named placeholders with PDO
+        $stmt = $conn->prepare("INSERT INTO users (full_name, email, password) VALUES (:name, :email, :password)");
+        $stmt->bindParam(':name', $name);
+        $stmt->bindParam(':email', $email);
+        $stmt->bindParam(':password', $password);
+        $stmt->execute();
 
-    if ($stmt->execute()) {
-        $_SESSION['student_id'] = $stmt->insert_id;
+        // Get inserted ID (note: only works if your table has SERIAL or IDENTITY column)
+        $_SESSION['student_id'] = $conn->lastInsertId();
         header("Location: post_question.php");
         exit();
-    } else {
-        $error = "Registration failed: " . $stmt->error;
+    } catch (PDOException $e) {
+        $error = "Registration failed: " . $e->getMessage();
     }
-    $stmt->close();
 }
 ?>
 
@@ -48,18 +52,4 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     </style>
 </head>
 <body>
-<div class="form-box">
-    <h2>Student Registration</h2>
-    <form method="post">
-        <input type="text" name="full_name" placeholder="Full Name" required>
-        <input type="email" name="email" placeholder="Email Address" required>
-        <input type="password" name="password" placeholder="Create Password" required>
-        <button type="submit">Register</button>
-        <a href="login.php">Already have an account? Login</a>
-    </form>
-    <?php if (!empty($error)) echo "<p style='color:red;'>$error</p>"; ?>
-</div>
-</body>
-</html>
-
-<?php include 'footer.php'; ?>
+<div class="form

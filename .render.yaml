@@ -1,0 +1,8 @@
+services:
+  - type: web
+    name: smartlearn-php
+    env: docker
+    repo: https://github.com/Kiluhub/freelance-php
+    region: oregon
+    branch: main
+    plan: free

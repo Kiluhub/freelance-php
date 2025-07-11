@@ -3,9 +3,8 @@ services:
     name: smartlearn-web
     env: php
     plan: free
-    buildCommand: ""  # no build step for PHP
-    startCommand: ""  # Apache auto-starts for PHP
-    rootDir: applic   # 👈 This tells Render to serve from the 'applic/' folder
+    buildCommand: ""
+    startCommand: ""
     autoDeploy: true
     region: oregon
 

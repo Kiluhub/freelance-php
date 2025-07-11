@@ -6,3 +6,7 @@ services:
     region: oregon
     branch: main
     plan: free
+
+    dockerfilePath: ./Dockerfile
+    buildCommand: ""
+    startCommand: "apache2-foreground"

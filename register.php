@@ -1,22 +1,13 @@
+<?php
+session_start(); // Must come first, before any output
+
+require 'connect.php'; // Your DB connection file
+?>
+
 <?php include 'header.php'; ?>
 
 <?php
-$host = "localhost";
-$user = "your_mysql_username";
-$password = "your_mysql_password";
-$dbname = "your_database_name";
-
-$conn = new mysqli($host, $user, $password, $dbname);
-
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
-?>
-<?php include 'footer.php'; ?>
-
-<?php
-require 'connect.php';
-session_start();
+$error = ''; // Initialize error variable
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $name = trim($_POST['full_name']);
@@ -29,6 +20,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     if ($stmt->execute()) {
         $_SESSION['student_id'] = $stmt->insert_id;
         header("Location: post_question.php");
+        exit();
     } else {
         $error = "Registration failed: " . $stmt->error;
     }
@@ -69,18 +61,5 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 </div>
 </body>
 </html>
-<?php include 'footer.php'; ?>
 
-<?php
-$host = "localhost";
-$user = "your_mysql_username";
-$password = "your_mysql_password";
-$dbname = "your_database_name";
-
-$conn = new mysqli($host, $user, $password, $dbname);
-
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
-?>
 <?php include 'footer.php'; ?>

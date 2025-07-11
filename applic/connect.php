@@ -1,9 +1,9 @@
 <?php
-$host = "dpg-d1octeruibrs73ck17kg-a";
+$host = "dpg-d1ogat3e5dus73e6k5ug-a";
 $port = "5432";
 $dbname = "smartlearn_db";
-$user = "smartlearn_user";
-$password = "pmlynWWOoOX6zYU3jxPWiqJLfEQX8pS6";
+$user = "smartlearn_iaqb_user";
+$password = "aGJqiJZiRQxg0vG5hZsNYbDnqWQv49tC";
 
 try {
     $conn = new PDO("pgsql:host=$host;port=$port;dbname=$dbname", $user, $password);

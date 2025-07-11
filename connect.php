@@ -1,14 +1,17 @@
 <?php
-$host = "your_host"; // e.g. render's hostname
+$host = "dpg-d1ogat3e5dus73e6k5ug-a.db.render.com";
 $port = "5432";
-$dbname = "your_database_name";
-$user = "your_database_user";
-$password = "your_password";
+$dbname = "smartlearn_iaqb";
+$user = "smartlearn_iaqb_user";
+$password = "aGJqiJZiRQxg0vG5hZsNYbDnqWQv49tC";
 
 try {
-    $conn = new PDO("pgsql:host=$host;port=$port;dbname=$dbname", $user, $password);
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $conn = new PDO("pgsql:host=$host;port=$port;dbname=$dbname", $user, $password, [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+    ]);
 } catch (PDOException $e) {
-    die("Connection failed: " . $e->getMessage());
+    error_log("DB connection failed: " . $e->getMessage()); // logs error without exposing to user
+    $conn = null; // Safe fallback for pages that don't depend on DB
 }
 ?>

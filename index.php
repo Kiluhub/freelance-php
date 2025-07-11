@@ -1,4 +1,3 @@
-
 <?php
 session_start();
 
@@ -7,19 +6,9 @@ if (!isset($_SESSION['student_id'])) {
     header("Location: login.php");
     exit();
 }
-
-include 'header.php';
 ?>
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SmartLearn - Academic Help</title>
-  <link rel="stylesheet" href="style.css">
-</head>
-<body>
+<?php include 'header.php'; ?>
 
 <section class="hero">
   <div class="carousel">
@@ -32,8 +21,5 @@ include 'header.php';
     <a href="post_question.php" class="post-btn"><span class="btn-text">Post Your Question</span></a>
   </div>
 </section>
-
-</body>
-</html>
 
 <?php include 'footer.php'; ?>

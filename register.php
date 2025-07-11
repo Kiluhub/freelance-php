@@ -1,13 +1,13 @@
 <?php
-session_start(); // Start session first
+session_start(); // Always start session at the top
 
-require 'connect.php'; // PDO connection to PostgreSQL
+require 'connect.php'; // Make sure this connects via PDO to PostgreSQL
 ?>
 
 <?php include 'header.php'; ?>
 
 <?php
-$error = ''; // Error message placeholder
+$error = ''; // To hold any error messages
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $name = trim($_POST['full_name']);
@@ -15,16 +15,15 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
 
     try {
-        // Use named placeholders with PDO
+        // Prepare SQL with named parameters
         $stmt = $conn->prepare("INSERT INTO users (full_name, email, password) VALUES (:name, :email, :password)");
         $stmt->bindParam(':name', $name);
         $stmt->bindParam(':email', $email);
         $stmt->bindParam(':password', $password);
         $stmt->execute();
 
-        // Get inserted ID (note: only works if your table has SERIAL or IDENTITY column)
-        $_SESSION['student_id'] = $conn->lastInsertId();
-        header("Location: post_question.php");
+        // ✅ Redirect to login after successful registration
+        header("Location: login.php");
         exit();
     } catch (PDOException $e) {
         $error = "Registration failed: " . $e->getMessage();
@@ -37,7 +36,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 <head>
     <title>Register</title>
     <style>
-        body { font-family: Arial; background: #f0f4f8; padding: 20px; }
+        body { font-family: Arial, sans-serif; background: #f0f4f8; padding: 20px; }
         .form-box {
             max-width: 400px;
             margin: auto;
@@ -46,10 +45,40 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             box-shadow: 0 0 10px #ccc;
             border-radius: 8px;
         }
-        input { width: 100%; padding: 12px; margin-top: 10px; border-radius: 5px; border: 1px solid #ccc; }
-        button { margin-top: 20px; background: black; color: white; padding: 12px; width: 100%; border: none; border-radius: 5px; }
+        input {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        button {
+            margin-top: 20px;
+            background: black;
+            color: white;
+            padding: 12px;
+            width: 100%;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
         a { display: block; margin-top: 10px; text-align: center; }
+        .error { color: red; margin-top: 10px; }
     </style>
 </head>
 <body>
-<div class="form
+<div class="form-box">
+    <h2>Student Registration</h2>
+    <form method="post">
+        <input type="text" name="full_name" placeholder="Full Name" required>
+        <input type="email" name="email" placeholder="Email Address" required>
+        <input type="password" name="password" placeholder="Create Password" required>
+        <button type="submit">Register</button>
+        <a href="login.php">Already have an account? Login</a>
+    </form>
+    <?php if (!empty($error)) echo "<p class='error'>$error</p>"; ?>
+</div>
+</body>
+</html>
+
+<?php include 'footer.php'; ?>

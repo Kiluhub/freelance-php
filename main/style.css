@@ -1,0 +1,64 @@
+ /* header */
+
+ header {
+            background: #001f3f;
+            color: white;
+            padding: 20px 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+.logo {
+            font-size: 24px;
+            font-weight: bold;
+        }
+nav a {
+            margin-left: 20px;
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+        }
+nav a:hover {
+            text-decoration: underline;
+        }
+.post-btn {
+            background-color: red;
+            padding: 8px 14px;
+            border-radius: 5px;
+            margin-left: 30px;
+        }
+
+
+/* footer*/
+.site-footer {
+  background: #001f3f;
+  color: white;
+  text-align: center;
+  padding: 15px;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+}
+
+/*index*/
+.post-btn {
+    background-color: rgb(255, 30, 0);
+    padding: 8px 14px;
+    border-radius: 5px;
+    margin-left: 30px;
+    color: white;
+    font-weight: bold;
+    font-size: 18px;
+    text-decoration: none; /* ✅ remove underline */
+}
+
+
+.btn-text {
+  text-decoration: none;
+
+  color: white;
+  font-weight: bold;
+  font-size: 18px;
+
+}

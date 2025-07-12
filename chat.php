@@ -7,227 +7,146 @@ if (!$taskId || !is_numeric($taskId)) {
     die("❌ No task specified.");
 }
 
-// ============================
-// 🔒 SECURE ROLE VERIFICATION
-// ============================
-$isStudent = false;
-$isAdmin = false;
-$senderRole = null;
+// ROLE CHECK
+$isStudent = isset($_SESSION['student_id']);
+$isAdmin   = isset($_SESSION['is_admin']) && $_SESSION['is_admin'] === true;
+$senderRole = $isStudent ? 'student' : ($isAdmin ? 'admin' : null);
 
-if (isset($_SESSION['student_id'])) {
-    $studentCheck = $conn->prepare("SELECT id FROM students WHERE id = :id");
-    $studentCheck->execute(['id' => $_SESSION['student_id']]);
-    if ($studentCheck->fetch()) {
-        $isStudent = true;
-        $senderRole = 'student';
-    }
+if (!$senderRole) {
+    die("❌ Unauthorized. Please log in.");
 }
 
-if (isset($_SESSION['admin_id'])) {
-    $adminCheck = $conn->prepare("SELECT id FROM admins WHERE id = :id");
-    $adminCheck->execute(['id' => $_SESSION['admin_id']]);
-    if ($adminCheck->fetch()) {
-        $isAdmin = true;
-        $senderRole = 'admin';
-    }
-}
-
-if (!$isStudent && !$isAdmin) {
-    die("❌ Unauthorized access. Please log in.");
-}
-
-// 🛡 If student, confirm task belongs to them
+// If student, verify task ownership
 if ($isStudent) {
-    $taskOwnership = $conn->prepare("SELECT id FROM questions WHERE id = :task_id AND student_id = :student_id");
-    $taskOwnership->execute([
-        'task_id' => $taskId,
-        'student_id' => $_SESSION['student_id']
-    ]);
-    if (!$taskOwnership->fetch()) {
-        die("❌ Access denied. This task doesn't belong to you.");
+    $verify = $conn->prepare("SELECT id FROM questions WHERE id = :tid AND student_id = :sid");
+    $verify->execute(['tid' => $taskId, 'sid' => $_SESSION['student_id']]);
+    if (!$verify->fetch()) {
+        die("❌ Access denied. This task doesn’t belong to you.");
     }
 }
 
-// ============================
-// 💬 HANDLE NEW MESSAGE
-// ============================
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['message'])) {
+// Handle POST
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty(trim($_POST['message']))) {
     $msg = trim($_POST['message']);
     $type = $_POST['type'] ?? 'Other';
-    $filePath = '';
-
-    // Handle file upload
-    if (!empty($_FILES['attachment']['name'])) {
+    $files_paths = [];
+    if (!empty($_FILES['attachment']['name'][0])) {
         $uploadDir = 'uploads/chat/';
         if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
-        $fileName = uniqid() . '_' . basename($_FILES['attachment']['name']);
-        $targetPath = $uploadDir . $fileName;
-
-        if (move_uploaded_file($_FILES['attachment']['tmp_name'], $targetPath)) {
-            $filePath = $targetPath;
+        foreach ($_FILES['attachment']['tmp_name'] as $i => $tmp) {
+            $name = basename($_FILES['attachment']['name'][$i]);
+            $uniq = uniqid() . '_' . $name;
+            $dest = $uploadDir . $uniq;
+            if (move_uploaded_file($tmp, $dest)) {
+                $files_paths[] = $dest;
+            }
         }
     }
+    // Save as comma‑separated paths
+    $files_csv = implode(',', $files_paths);
 
-    $insert = $conn->prepare("
+    $ins = $conn->prepare("
         INSERT INTO messages (task_id, sender_role, message, type, file_path) 
-        VALUES (:task_id, :role, :msg, :type, :file_path)
+        VALUES (:tid, :role, :msg, :type, :file_path)
     ");
-    $insert->execute([
-        'task_id' => $taskId,
+    $ins->execute([
+        'tid' => $taskId,
         'role' => $senderRole,
         'msg' => $msg,
         'type' => $type,
-        'file_path' => $filePath
+        'file_path' => $files_csv
     ]);
 
-    header("Location: chat.php?task_id=" . $taskId);
+    header("Location: chat.php?task_id=$taskId");
     exit;
 }
 
-// ============================
-// 📩 FETCH MESSAGES
-// ============================
-$msgQuery = $conn->prepare("SELECT * FROM messages WHERE task_id = :task_id ORDER BY sent_at ASC");
-$msgQuery->execute(['task_id' => $taskId]);
-$messages = $msgQuery->fetchAll(PDO::FETCH_ASSOC);
+// Fetch messages
+$q = $conn->prepare("SELECT * FROM messages WHERE task_id = :tid ORDER BY sent_at ASC");
+$q->execute(['tid' => $taskId]);
+$messages = $q->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!DOCTYPE html>
 <html>
 <head>
-    <title><?= ucfirst($senderRole) ?> Chat – Task #<?= htmlspecialchars($taskId) ?></title>
-    <style>
-        body {
-            font-family: 'Segoe UI', sans-serif;
-            background: #eef2f7;
-            margin: 0;
-            padding: 20px;
-        }
-
-        .chat-box {
-            max-width: 900px;
-            margin: auto;
-            background: white;
-            padding: 25px;
-            border-radius: 10px;
-            box-shadow: 0 0 12px rgba(0,0,0,0.1);
-        }
-
-        h2 {
-            text-align: center;
-            margin-bottom: 20px;
-            color: #333;
-        }
-
-        .msg-container {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-
-        .message {
-            padding: 12px 16px;
-            border-radius: 8px;
-            max-width: 75%;
-            word-wrap: break-word;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-            position: relative;
-        }
-
-        .student { align-self: flex-start; background: #dcf8c6; }
-        .admin { align-self: flex-end; background: #e1dff8; }
-
-        .message small {
-            display: block;
-            margin-top: 5px;
-            font-size: 0.75em;
-            color: #666;
-        }
-
-        .message .type-tag {
-            font-size: 12px;
-            background: #444;
-            color: #fff;
-            padding: 2px 6px;
-            border-radius: 4px;
-            display: inline-block;
-            margin-bottom: 5px;
-        }
-
-        .message .file-link {
-            display: block;
-            font-size: 13px;
-            margin-top: 5px;
-        }
-
-        form textarea, form select, form input[type="file"] {
-            width: 100%;
-            padding: 12px;
-            font-size: 14px;
-            border-radius: 8px;
-            border: 1px solid #ccc;
-            margin-top: 10px;
-        }
-
-        form button {
-            margin-top: 15px;
-            padding: 12px 24px;
-            background: #111;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-
-        .back-link {
-            display: block;
-            margin-top: 30px;
-            text-align: center;
-            text-decoration: none;
-            color: #444;
-            font-weight: bold;
-        }
-
-        .back-link:hover { color: #000; }
-    </style>
+  <title><?= ucfirst($senderRole) ?> Chat – Task #<?= htmlspecialchars($taskId) ?></title>
+  <style>
+    body { font-family: 'Segoe UI'; background: #eef2f7; margin:0; padding:20px; }
+    .chat-box { max-width:900px;margin:auto;background:#fff;padding:25px;border-radius:10px;box-shadow:0 0 12px rgba(0,0,0,0.1); }
+    h2 { text-align:center;color:#333;margin-bottom:20px; }
+    .msg-container { display:flex; flex-direction:column; gap:12px; max-height:600px; overflow-y:auto; margin-bottom:20px; }
+    .message { padding:12px 16px;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,0.1); position:relative; max-width:75%; }
+    .student { align-self:flex-start; background:#dcf8c6 }
+    .admin { align-self:flex-end; background:#e1dff8 }
+    .type-tag { font-size:12px; background:#444; color:#fff; padding:2px 6px; border-radius:4px; display:inline-block; margin-bottom:5px; }
+    .file-link { display:block; font-size:13px; margin-top:5px; }
+    .new-notice { position:fixed; top:10px; right:10px; font-size:24px; display:none; cursor:pointer; }
+    form textarea, select, input[type="file"] { width:100%; padding:12px; font-size:14px; border-radius:8px; border:1px solid #ccc; margin-top:10px; }
+    input[type="file"] { padding:0.5em; }
+    button { margin-top:15px; padding:12px 24px; background:#111; color:#fff; border:none; border-radius:6px; font-size:16px; cursor:pointer; }
+    .back-link { display:block; text-align:center; margin-top:30px; color:#444; font-weight:bold; text-decoration:none; }
+    .back-link:hover { color:#000; }
+  </style>
 </head>
 <body>
-    <div class="chat-box">
-        <h2><?= $isAdmin ? 'Admin Chat Panel' : 'Your Task Chat' ?> — Task #<?= htmlspecialchars($taskId) ?></h2>
+  <div class="chat-box">
+    <h2><?= $isAdmin ? 'Admin Chat Panel' : 'Your Task Chat' ?> — Task #<?= htmlspecialchars($taskId) ?></h2>
+    <div class="msg-container" id="msgs">
+      <?php if (empty($messages)): ?>
+        <p style="color:#888;text-align:center;">No messages yet. Start below.</p>
+      <?php endif; ?>
 
-        <div class="msg-container">
-            <?php if (empty($messages)): ?>
-                <p style="color:#888; text-align:center;">No messages yet. Start the conversation below.</p>
-            <?php endif; ?>
-
-            <?php foreach ($messages as $msg): ?>
-                <div class="message <?= $msg['sender_role'] ?>">
-                    <span class="type-tag"><?= htmlspecialchars($msg['type'] ?? 'Other') ?></span><br>
-                    <strong><?= ucfirst($msg['sender_role']) ?>:</strong><br>
-                    <?= nl2br(htmlspecialchars($msg['message'])) ?>
-                    <?php if (!empty($msg['file_path'])): ?>
-                        <a class="file-link" href="<?= htmlspecialchars($msg['file_path']) ?>" download>📎 Attachment</a>
-                    <?php endif; ?>
-                    <small><?= $msg['sent_at'] ?></small>
-                </div>
-            <?php endforeach; ?>
+      <?php foreach ($messages as $msg): ?>
+        <?php $paths = array_filter(explode(',', $msg['file_path'] ?? '')); ?>
+        <div class="message <?= $msg['sender_role'] ?>">
+          <span class="type-tag"><?= htmlspecialchars($msg['type'] ?? 'Other') ?></span><br>
+          <strong><?= ucfirst($msg['sender_role']) ?>:</strong><br>
+          <?= nl2br(htmlspecialchars($msg['message'])) ?>
+          <?php foreach ($paths as $fp): ?>
+            <a class="file-link" href="<?= htmlspecialchars($fp) ?>" download>📎 <?= basename($fp) ?></a>
+          <?php endforeach; ?>
+          <small><?= $msg['sent_at'] ?></small>
         </div>
-
-        <form method="post" enctype="multipart/form-data">
-            <textarea name="message" placeholder="Type your message..." required></textarea>
-            <select name="type" required>
-                <option value="Answer">Answer</option>
-                <option value="Update">Update</option>
-                <option value="Info">Info</option>
-                <option value="Other" selected>Other</option>
-            </select>
-            <input type="file" name="attachment">
-            <button type="submit">Send</button>
-        </form>
-
-        <a class="back-link" href="<?= $isAdmin ? 'admin_dashboard.php' : 'submit_question.php' ?>">⬅ Back to Tasks</a>
+      <?php endforeach; ?>
     </div>
+
+    <form method="post" enctype="multipart/form-data">
+      <textarea name="message" placeholder="Type your message…" required></textarea>
+      <select name="type" required>
+        <option value="Answer">Answer</option>
+        <option value="Update">Update</option>
+        <option value="Info">Info</option>
+        <option value="Other" selected>Other</option>
+      </select>
+      <input type="file" name="attachment[]" multiple>
+      <button type="submit">Send</button>
+    </form>
+
+    <a class="back-link" href="<?= $isAdmin ? 'admin_dashboard.php' : 'submit_question.php' ?>">⬅ Back to Tasks</a>
+  </div>
+
+  <div class="new-notice" id="notice">🔔 New!</div>
+
+  <audio id="ding" src="https://www.myserver.com/ding.mp3"></audio>
+
+  <script>
+    let lastCount = <?= count($messages) ?>;
+    setInterval(() => {
+      fetch('chat_poll.php?task_id=<?= $taskId ?>')
+        .then(r => r.json())
+        .then(data => {
+          if (data.count > lastCount) {
+            document.getElementById('notice').style.display = 'block';
+            document.getElementById('ding').play();
+            lastCount = data.count;
+          }
+        });
+    }, 5000);
+
+    document.getElementById('notice').onclick = () => {
+      location.reload();
+    };
+  </script>
 </body>
 </html>

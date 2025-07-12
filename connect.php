@@ -28,4 +28,5 @@ try {
     echo "<p style='color:red;'>Database connection failed. Please try again later.</p>";
     $conn = null;
 }
+
 ?>

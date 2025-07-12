@@ -1,12 +1,17 @@
 <?php
 session_start();
-if (!isset($_SESSION['student_id'])) {
-    header("Location: login.php");
-    exit();
-}
-?>
+require 'connect.php';
 
-<?php include 'header.php'; ?>
+$hasTasks = false;
+
+if (isset($_SESSION['student_id'])) {
+    $stmt = $conn->prepare("SELECT id FROM questions WHERE student_id = :sid LIMIT 1");
+    $stmt->execute(['sid' => $_SESSION['student_id']]);
+    $hasTasks = $stmt->fetch() !== false;
+}
+
+include 'header.php';
+?>
 
 <style>
     body {
@@ -58,7 +63,9 @@ if (!isset($_SESSION['student_id'])) {
         text-shadow: 2px 2px 5px rgba(0,0,0,0.3);
     }
 
-    .post-btn {
+    .post-btn, .tasks-btn {
+        display: inline-block;
+        margin: 10px;
         background-color: #ff1744;
         color: white;
         padding: 15px 30px;
@@ -69,8 +76,17 @@ if (!isset($_SESSION['student_id'])) {
         transition: background 0.3s ease, transform 0.3s ease;
     }
 
+    .tasks-btn {
+        background-color: #00796b;
+    }
+
     .post-btn:hover {
         background-color: #d50000;
+        transform: scale(1.05);
+    }
+
+    .tasks-btn:hover {
+        background-color: #004d40;
         transform: scale(1.05);
     }
 
@@ -128,6 +144,10 @@ if (!isset($_SESSION['student_id'])) {
     </div>
     <div class="cta">
         <h1>Join Thousands of Students Getting Help Today!</h1>
+        <a href="post_question.php" class="post-btn">➕ Post Your Question</a>
+        <?php if ($hasTasks): ?>
+            <a href="submit_question.php" class="tasks-btn">📁 View My Tasks</a>
+        <?php endif; ?>
     </div>
 </section>
 

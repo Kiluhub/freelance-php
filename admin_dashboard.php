@@ -1,4 +1,3 @@
-
 <?php
 require 'connect.php';
 
@@ -8,7 +7,8 @@ $sql = "SELECT q.*, u.full_name
         JOIN users u ON q.student_id = u.id
         ORDER BY q.created_at DESC";
 
-$result = $conn->query($sql);
+$stmt = $conn->prepare($sql);
+$stmt->execute();
 ?>
 
 <!DOCTYPE html>
@@ -57,6 +57,7 @@ $result = $conn->query($sql);
 
     <table>
         <tr>
+            <th>#</th>
             <th>Student</th>
             <th>Title</th>
             <th>Pages</th>
@@ -64,31 +65,37 @@ $result = $conn->query($sql);
             <th>Other Info</th>
             <th>File</th>
             <th>Date Posted</th>
+            <th>Chat</th>
         </tr>
 
-        <?php if ($result->num_rows > 0): ?>
-            <?php while($row = $result->fetch_assoc()): ?>
-                <tr>
-                    <td><?= htmlspecialchars($row['full_name']) ?></td>
-                    <td><?= htmlspecialchars($row['title']) ?></td>
-                    <td><?= (int)$row['pages'] ?></td>
-                    <td><?= nl2br(htmlspecialchars($row['description'])) ?></td>
-                    <td><?= nl2br(htmlspecialchars($row['other_info'])) ?></td>
-                    <td>
-                        <?php if (!empty($row['file_path'])): ?>
-                            <a class="download-btn" href="<?= $row['file_path'] ?>" download>Download</a>
-                        <?php else: ?>
-                            No file
-                        <?php endif; ?>
-                    </td>
-                    <td><?= $row['created_at'] ?></td>
-                </tr>
-            <?php endwhile; ?>
-        <?php else: ?>
-            <tr><td colspan="7">No questions submitted yet.</td></tr>
+        <?php
+        $count = 1;
+        if ($stmt && $stmt->rowCount() > 0):
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)):
+        ?>
+            <tr>
+                <td><?= $count++ ?></td>
+                <td><?= htmlspecialchars($row['full_name']) ?></td>
+                <td><?= htmlspecialchars($row['title']) ?></td>
+                <td><?= (int)$row['pages'] ?></td>
+                <td><?= nl2br(htmlspecialchars($row['description'])) ?></td>
+                <td><?= nl2br(htmlspecialchars($row['other_info'])) ?></td>
+                <td>
+                    <?php if (!empty($row['file_path'])): ?>
+                        <a class="download-btn" href="<?= $row['file_path'] ?>" download>Download</a>
+                    <?php else: ?>
+                        No file
+                    <?php endif; ?>
+                </td>
+                <td><?= $row['created_at'] ?></td>
+                <td><a class="download-btn" href="chat.php?task_id=<?= $row['id'] ?>">Open Chat</a></td>
+            </tr>
+        <?php endwhile; else: ?>
+            <tr><td colspan="9">No questions submitted yet.</td></tr>
         <?php endif; ?>
     </table>
 </div>
 </body>
 </html>
+
 <?php include 'footer.php'; ?>

@@ -1,12 +1,7 @@
 <?php
 session_start(); // Always start session at the top
-
 require 'connect.php'; // Ensure this connects via PDO to PostgreSQL
-?>
 
-<?php include 'header.php'; ?>
-
-<?php
 $error = ''; // Error holder
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
@@ -30,7 +25,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $stmt->bindParam(':password', $password);
             $stmt->execute();
 
-            // Step 3: Redirect to login
+            // ✅ Redirect to login BEFORE output
             header("Location: login.php");
             exit();
         }
@@ -43,6 +38,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     }
 }
 ?>
+<?php include 'header.php'; ?>
 
 <!DOCTYPE html>
 <html>

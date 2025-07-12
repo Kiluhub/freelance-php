@@ -7,10 +7,17 @@ if (!$taskId) {
     die("No task specified.");
 }
 
+// Detect role
 $isStudent = isset($_SESSION['student_id']);
+$isAdmin = isset($_SESSION['is_admin']) && $_SESSION['is_admin'] === true;
+
+if (!$isStudent && !$isAdmin) {
+    die("Unauthorized access.");
+}
+
 $senderRole = $isStudent ? 'student' : 'admin';
 
-// Security: If student, confirm the task belongs to them
+// SECURITY: If student, confirm the task belongs to them
 if ($isStudent) {
     $check = $conn->prepare("SELECT id FROM questions WHERE id = :task_id AND student_id = :student_id");
     $check->execute(['task_id' => $taskId, 'student_id' => $_SESSION['student_id']]);
@@ -37,7 +44,7 @@ $messages = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Task Chat</title>
+    <title><?= $isAdmin ? "Admin Chat" : "Student Chat" ?> — Task #<?= htmlspecialchars($taskId) ?></title>
     <style>
         body { font-family: Arial; background: #f7f7f7; padding: 20px; }
         .chat-box {
@@ -90,7 +97,7 @@ $messages = $stmt->fetchAll(PDO::FETCH_ASSOC);
 </head>
 <body>
 <div class="chat-box">
-    <h2>Task Chat — Task ID #<?= htmlspecialchars($taskId) ?></h2>
+    <h2><?= $isAdmin ? "Admin Chat Panel" : "Your Task Chat" ?> — Task #<?= htmlspecialchars($taskId) ?></h2>
 
     <div class="msg-container">
         <?php foreach ($messages as $msg): ?>
@@ -107,7 +114,7 @@ $messages = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <button type="submit">Send</button>
     </form>
 
-    <a class="back-link" href="submit_question.php">⬅ Back to Tasks</a>
+    <a class="back-link" href="<?= $isAdmin ? 'admin_dashboard.php' : 'submit_question.php' ?>">⬅ Back to Tasks</a>
 </div>
 </body>
 </html>

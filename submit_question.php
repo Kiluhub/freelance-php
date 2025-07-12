@@ -53,6 +53,7 @@ $stmt = $conn->prepare("SELECT * FROM questions WHERE student_id = :student_id O
 $stmt->execute(['student_id' => $studentId]);
 $tasks = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
+<?php include 'header.php'; ?>
 
 <!DOCTYPE html>
 <html>
@@ -144,3 +145,4 @@ $tasks = $stmt->fetchAll(PDO::FETCH_ASSOC);
 </div>
 </body>
 </html>
+<?php include 'footer.php'; ?>

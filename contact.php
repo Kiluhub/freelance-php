@@ -58,9 +58,8 @@
 
     <div class="contact-item"><i>📧</i> Email: <a href="mailto:smartlearn.help@gmail.com">smartlearn.help@gmail.com</a></div>
     <div class="contact-item"><i>📞</i> Phone: +254 712 345 678</div>
-    <div class="contact-item"><i>🌐</i> Website: <a href="https://smartlearn.co.ke">smartlearn.co.ke</a></div>
-    <div class="contact-item"><i>📍</i> Address: Nairobi, Kenya</div>
-    <div class="contact-item"><i>⏰</i> Support Hours: Mon–Fri, 8:00AM – 5:00PM EAT</div>
+    <div class="contact-item"><i>🌐</i> Website: <a href="https://smartlearn.com">smartlearn.com</a></div>
+    <div class="contact-item"><i>⏰</i> Support Hours</div>
 </div>
 
 </body>

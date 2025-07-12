@@ -1,6 +1,6 @@
 <?php
 session_start();
-require 'connect.php'; // Load the DB connection
+require 'connect.php';
 
 $error = "";
 
@@ -8,32 +8,32 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $email = trim($_POST['email']);
     $password = $_POST['password'];
 
-    $stmt = $conn->prepare("SELECT id, password FROM users WHERE email = ?");
-    $stmt->bind_param("s", $email);
-    $stmt->execute();
-    $stmt->store_result();
-    
-    if ($stmt->num_rows === 1) {
-        $stmt->bind_result($id, $hashed_password);
-        $stmt->fetch();
+    if ($conn) {
+        try {
+            // ✅ Use named placeholders for PDO
+            $stmt = $conn->prepare("SELECT id, password FROM users WHERE email = :email");
+            $stmt->execute(['email' => $email]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if (password_verify($password, $hashed_password)) {
-            $_SESSION['student_id'] = $id;
-            header("Location: post_question.php");
-            exit();
-        } else {
-            $error = "Invalid credentials.";
+            if ($user && password_verify($password, $user['password'])) {
+                $_SESSION['student_id'] = $user['id'];
+
+                // ✅ Redirect only if no output has been sent
+                header("Location: post_question.php");
+                exit;
+            } else {
+                $error = "Invalid email or password.";
+            }
+        } catch (PDOException $e) {
+            $error = "Login error: " . $e->getMessage();
         }
     } else {
-        $error = "Account not found.";
+        $error = "Database connection failed.";
     }
-
-    $stmt->close();
 }
 ?>
 
 <?php include 'header.php'; ?>
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -64,11 +64,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             border: none;
             border-radius: 5px;
         }
-        a {
-            display: block;
-            margin-top: 10px;
-            text-align: center;
-        }
         .error {
             color: red;
             margin-top: 15px;
@@ -83,13 +78,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         <input type="email" name="email" placeholder="Email Address" required>
         <input type="password" name="password" placeholder="Password" required>
         <button type="submit">Login</button>
-        <a href="register.php">Don't have an account? Register</a>
     </form>
     <?php if (!empty($error)): ?>
         <p class="error"><?= htmlspecialchars($error) ?></p>
     <?php endif; ?>
 </div>
+<?php include 'footer.php'; ?>
 </body>
 </html>
-
-<?php include 'footer.php'; ?>

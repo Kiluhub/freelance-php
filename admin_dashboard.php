@@ -63,7 +63,14 @@ $result = $conn->query($sql);
             padding: 6px 12px;
             border-radius: 4px;
             text-decoration: none;
-            margin-left: 10px;
+        }
+        .view-btn {
+            background: darkorange;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
         }
         .container {
             max-width: 1100px;
@@ -78,6 +85,37 @@ $result = $conn->query($sql);
             border-radius: 6px;
             margin-bottom: 20px;
             cursor: pointer;
+        }
+
+        /* Modal Styling */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 9999;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.7);
+        }
+        .modal-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 600px;
+            position: relative;
+        }
+        .close {
+            position: absolute;
+            right: 15px;
+            top: 10px;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #888;
         }
     </style>
 </head>
@@ -94,21 +132,21 @@ $result = $conn->query($sql);
             <th>Student</th>
             <th>Title</th>
             <th>Pages</th>
-            <th>Description</th>
-            <th>Other Info</th>
+            <th>Price ($)</th>
             <th>File</th>
             <th>Date Posted</th>
+            <th>Info</th>
             <th>Actions</th>
         </tr>
 
         <?php if ($result->rowCount() > 0): ?>
+            <?php $index = 0; ?>
             <?php while ($row = $result->fetch(PDO::FETCH_ASSOC)): ?>
                 <tr>
                     <td><?= htmlspecialchars($row['full_name']) ?></td>
                     <td><?= htmlspecialchars($row['title']) ?></td>
                     <td><?= (int)$row['pages'] ?></td>
-                    <td><?= nl2br(htmlspecialchars($row['description'])) ?></td>
-                    <td><?= nl2br(htmlspecialchars($row['other_info'])) ?></td>
+                    <td><?= number_format($row['price'], 2) ?></td>
                     <td>
                         <?php if (!empty($row['file_path'])): ?>
                             <a class="download-btn" href="<?= htmlspecialchars($row['file_path']) ?>" download>Download</a>
@@ -118,14 +156,44 @@ $result = $conn->query($sql);
                     </td>
                     <td><?= htmlspecialchars($row['created_at']) ?></td>
                     <td>
+                        <button class="view-btn" onclick="openModal(<?= $index ?>)">View</button>
+                    </td>
+                    <td>
                         <a class="chat-btn" href="chat.php?task_id=<?= $row['id'] ?>">Chat</a>
                     </td>
                 </tr>
+
+                <!-- Modal for full task info -->
+                <div class="modal" id="modal<?= $index ?>">
+                    <div class="modal-content">
+                        <span class="close" onclick="closeModal(<?= $index ?>)">&times;</span>
+                        <h3><?= htmlspecialchars($row['title']) ?></h3>
+                        <p><strong>Description:</strong><br><?= nl2br(htmlspecialchars($row['description'])) ?></p>
+                        <p><strong>Other Info:</strong><br><?= nl2br(htmlspecialchars($row['other_info'])) ?></p>
+                        <p><strong>Pages:</strong> <?= $row['pages'] ?> | <strong>Price:</strong> $<?= number_format($row['price'], 2) ?></p>
+                    </div>
+                </div>
+
+                <?php $index++; ?>
             <?php endwhile; ?>
         <?php else: ?>
             <tr><td colspan="8">No questions submitted yet.</td></tr>
         <?php endif; ?>
     </table>
 </div>
+
+<script>
+    function openModal(id) {
+        document.getElementById('modal' + id).style.display = 'block';
+    }
+    function closeModal(id) {
+        document.getElementById('modal' + id).style.display = 'none';
+    }
+    window.onclick = function(event) {
+        if (event.target.classList.contains('modal')) {
+            event.target.style.display = 'none';
+        }
+    };
+</script>
 </body>
 </html>

@@ -71,7 +71,7 @@ $tasks = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <title>Submit Task</title>
     <style>
         body { font-family: Arial, sans-serif; background: #f0f4f8; padding: 20px; }
-        .container { max-width: 900px; margin: auto; }
+        .container { max-width: 1000px; margin: auto; }
         h2 { margin-bottom: 20px; text-align: center; }
 
         form { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px #ccc; }
@@ -97,10 +97,53 @@ $tasks = $stmt->fetchAll(PDO::FETCH_ASSOC);
         th, td {
             padding: 12px;
             border: 1px solid #ddd;
+            text-align: left;
         }
-        th { background: black; color: white; }
+        th { background: #222; color: white; }
         tr:hover { background: #f9f9f9; }
-        a.chat-link { background: #007BFF; color: white; padding: 5px 10px; border-radius: 4px; text-decoration: none; }
+        a.chat-link {
+            background: #007BFF; color: white;
+            padding: 5px 10px; border-radius: 4px;
+            text-decoration: none;
+        }
+
+        .view-btn {
+            padding: 6px 12px;
+            background: darkorange;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        /* Modal Styling */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 9999;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            overflow: auto;
+        }
+        .modal-content {
+            background-color: #fff;
+            margin: 10% auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 600px;
+            position: relative;
+        }
+        .close {
+            position: absolute;
+            right: 15px;
+            top: 10px;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #888;
+        }
     </style>
 </head>
 <body>
@@ -127,35 +170,56 @@ $tasks = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <th>Title</th>
                 <th>Pages</th>
                 <th>Price ($)</th>
-                <th>Description</th>
-                <th>Other Info</th>
                 <th>File</th>
                 <th>Posted</th>
+                <th>Info</th>
                 <th>Chat</th>
             </tr>
-            <?php foreach ($tasks as $task): ?>
+            <?php foreach ($tasks as $index => $task): ?>
                 <tr>
                     <td><?= htmlspecialchars($task['title']) ?></td>
                     <td><?= $task['pages'] ?></td>
                     <td><?= number_format($task['price'], 2) ?></td>
-                    <td><?= nl2br(htmlspecialchars($task['description'])) ?></td>
-                    <td><?= nl2br(htmlspecialchars($task['other_info'])) ?></td>
                     <td>
-                        <?php if ($task['file_path']): ?>
-                            <a href="<?= $task['file_path'] ?>" download>Download</a>
-                        <?php else: ?>
-                            N/A
-                        <?php endif; ?>
+                        <?= $task['file_path'] ? "<a href='{$task['file_path']}' download>Download</a>" : "N/A" ?>
                     </td>
                     <td><?= $task['created_at'] ?></td>
+                    <td>
+                        <button class="view-btn" onclick="openModal(<?= $index ?>)">View</button>
+                    </td>
                     <td><a class="chat-link" href="chat.php?task_id=<?= $task['id'] ?>">Chat</a></td>
                 </tr>
+
+                <!-- Modal Content -->
+                <div class="modal" id="modal<?= $index ?>">
+                    <div class="modal-content">
+                        <span class="close" onclick="closeModal(<?= $index ?>)">&times;</span>
+                        <h3><?= htmlspecialchars($task['title']) ?></h3>
+                        <p><strong>Description:</strong><br><?= nl2br(htmlspecialchars($task['description'])) ?></p>
+                        <p><strong>Other Info:</strong><br><?= nl2br(htmlspecialchars($task['other_info'])) ?></p>
+                    </div>
+                </div>
             <?php endforeach; ?>
         </table>
     <?php else: ?>
         <p style="margin-top:20px;">You haven't submitted any tasks yet.</p>
     <?php endif; ?>
 </div>
+
+<script>
+    function openModal(id) {
+        document.getElementById('modal' + id).style.display = 'block';
+    }
+    function closeModal(id) {
+        document.getElementById('modal' + id).style.display = 'none';
+    }
+
+    window.onclick = function(event) {
+        if (event.target.classList.contains('modal')) {
+            event.target.style.display = 'none';
+        }
+    };
+</script>
 </body>
 </html>
 <?php include 'footer.php'; ?>

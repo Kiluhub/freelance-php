@@ -1,4 +1,10 @@
 <?php
+session_start();
+if (!isset($_SESSION['is_admin']) || $_SESSION['is_admin'] !== true) {
+    header("Location: admin_auth.php");
+    exit;
+}
+
 require 'connect.php';
 
 // Get all questions joined with user info
@@ -6,9 +12,7 @@ $sql = "SELECT q.*, u.full_name
         FROM questions q
         JOIN users u ON q.student_id = u.id
         ORDER BY q.created_at DESC";
-
-$stmt = $conn->prepare($sql);
-$stmt->execute();
+$result = $conn->query($sql);
 ?>
 
 <!DOCTYPE html>
@@ -16,8 +20,16 @@ $stmt->execute();
 <head>
     <title>Admin Dashboard - SmartLearn</title>
     <style>
-        body { font-family: Arial, sans-serif; background: #f0f4f8; padding: 20px; }
-        h2 { text-align: center; margin-bottom: 30px; color: #222; }
+        body {
+            font-family: Arial, sans-serif;
+            background: #f0f4f8;
+            padding: 20px;
+        }
+        h2 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #222;
+        }
         table {
             width: 100%;
             border-collapse: collapse;
@@ -45,19 +57,40 @@ $stmt->execute();
             border-radius: 4px;
             text-decoration: none;
         }
+        a.chat-btn {
+            background: green;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 4px;
+            text-decoration: none;
+            margin-left: 10px;
+        }
         .container {
             max-width: 1100px;
             margin: auto;
+        }
+        .logout-btn {
+            float: right;
+            background: red;
+            color: white;
+            padding: 8px 14px;
+            border: none;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            cursor: pointer;
         }
     </style>
 </head>
 <body>
 <div class="container">
-    <h2>Admin Dashboard - Submitted Questions</h2>
+    <form action="logout.php" method="post" style="text-align: right;">
+        <button class="logout-btn">Logout</button>
+    </form>
+
+    <h2>Admin Dashboard — Submitted Questions</h2>
 
     <table>
         <tr>
-            <th>#</th>
             <th>Student</th>
             <th>Title</th>
             <th>Pages</th>
@@ -65,37 +98,34 @@ $stmt->execute();
             <th>Other Info</th>
             <th>File</th>
             <th>Date Posted</th>
-            <th>Chat</th>
+            <th>Actions</th>
         </tr>
 
-        <?php
-        $count = 1;
-        if ($stmt && $stmt->rowCount() > 0):
-            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)):
-        ?>
-            <tr>
-                <td><?= $count++ ?></td>
-                <td><?= htmlspecialchars($row['full_name']) ?></td>
-                <td><?= htmlspecialchars($row['title']) ?></td>
-                <td><?= (int)$row['pages'] ?></td>
-                <td><?= nl2br(htmlspecialchars($row['description'])) ?></td>
-                <td><?= nl2br(htmlspecialchars($row['other_info'])) ?></td>
-                <td>
-                    <?php if (!empty($row['file_path'])): ?>
-                        <a class="download-btn" href="<?= $row['file_path'] ?>" download>Download</a>
-                    <?php else: ?>
-                        No file
-                    <?php endif; ?>
-                </td>
-                <td><?= $row['created_at'] ?></td>
-                <td><a class="download-btn" href="chat.php?task_id=<?= $row['id'] ?>">Open Chat</a></td>
-            </tr>
-        <?php endwhile; else: ?>
-            <tr><td colspan="9">No questions submitted yet.</td></tr>
+        <?php if ($result->rowCount() > 0): ?>
+            <?php while ($row = $result->fetch(PDO::FETCH_ASSOC)): ?>
+                <tr>
+                    <td><?= htmlspecialchars($row['full_name']) ?></td>
+                    <td><?= htmlspecialchars($row['title']) ?></td>
+                    <td><?= (int)$row['pages'] ?></td>
+                    <td><?= nl2br(htmlspecialchars($row['description'])) ?></td>
+                    <td><?= nl2br(htmlspecialchars($row['other_info'])) ?></td>
+                    <td>
+                        <?php if (!empty($row['file_path'])): ?>
+                            <a class="download-btn" href="<?= htmlspecialchars($row['file_path']) ?>" download>Download</a>
+                        <?php else: ?>
+                            No file
+                        <?php endif; ?>
+                    </td>
+                    <td><?= htmlspecialchars($row['created_at']) ?></td>
+                    <td>
+                        <a class="chat-btn" href="chat.php?task_id=<?= $row['id'] ?>">Chat</a>
+                    </td>
+                </tr>
+            <?php endwhile; ?>
+        <?php else: ?>
+            <tr><td colspan="8">No questions submitted yet.</td></tr>
         <?php endif; ?>
     </table>
 </div>
 </body>
 </html>
-
-<?php include 'footer.php'; ?>

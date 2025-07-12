@@ -25,11 +25,13 @@ if ($isStudent) {
     }
 }
 
-// Handle POST
+// Handle message POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty(trim($_POST['message']))) {
     $msg = trim($_POST['message']);
     $type = $_POST['type'] ?? 'Other';
     $files_paths = [];
+
+    // Handle multiple file uploads
     if (!empty($_FILES['attachment']['name'][0])) {
         $uploadDir = 'uploads/chat/';
         if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
@@ -42,7 +44,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty(trim($_POST['message']))) {
             }
         }
     }
-    // Save as comma‑separated paths
     $files_csv = implode(',', $files_paths);
 
     $ins = $conn->prepare("
@@ -65,6 +66,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty(trim($_POST['message']))) {
 $q = $conn->prepare("SELECT * FROM messages WHERE task_id = :tid ORDER BY sent_at ASC");
 $q->execute(['tid' => $taskId]);
 $messages = $q->fetchAll(PDO::FETCH_ASSOC);
+
+// Mark messages as seen
+if ($isAdmin) {
+    $conn->prepare("UPDATE messages SET seen_by_admin = TRUE WHERE task_id = :tid AND sender_role = 'student'")
+         ->execute(['tid' => $taskId]);
+} elseif ($isStudent) {
+    $conn->prepare("UPDATE messages SET seen_by_student = TRUE WHERE task_id = :tid AND sender_role = 'admin'")
+         ->execute(['tid' => $taskId]);
+}
 ?>
 
 <!DOCTYPE html>
@@ -81,12 +91,12 @@ $messages = $q->fetchAll(PDO::FETCH_ASSOC);
     .admin { align-self:flex-end; background:#e1dff8 }
     .type-tag { font-size:12px; background:#444; color:#fff; padding:2px 6px; border-radius:4px; display:inline-block; margin-bottom:5px; }
     .file-link { display:block; font-size:13px; margin-top:5px; }
-    .new-notice { position:fixed; top:10px; right:10px; font-size:24px; display:none; cursor:pointer; }
     form textarea, select, input[type="file"] { width:100%; padding:12px; font-size:14px; border-radius:8px; border:1px solid #ccc; margin-top:10px; }
     input[type="file"] { padding:0.5em; }
     button { margin-top:15px; padding:12px 24px; background:#111; color:#fff; border:none; border-radius:6px; font-size:16px; cursor:pointer; }
     .back-link { display:block; text-align:center; margin-top:30px; color:#444; font-weight:bold; text-decoration:none; }
     .back-link:hover { color:#000; }
+    .new-notice { position:fixed; top:10px; right:10px; font-size:24px; display:none; cursor:pointer; }
   </style>
 </head>
 <body>
@@ -98,7 +108,15 @@ $messages = $q->fetchAll(PDO::FETCH_ASSOC);
       <?php endif; ?>
 
       <?php foreach ($messages as $msg): ?>
-        <?php $paths = array_filter(explode(',', $msg['file_path'] ?? '')); ?>
+        <?php 
+          $paths = array_filter(explode(',', $msg['file_path'] ?? ''));
+          $seen = '';
+          if ($senderRole === 'admin' && $msg['sender_role'] === 'student') {
+              $seen = $msg['seen_by_admin'] ? '✅ Seen' : '🕓 Unread';
+          } elseif ($senderRole === 'student' && $msg['sender_role'] === 'admin') {
+              $seen = $msg['seen_by_student'] ? '✅ Seen' : '🕓 Unread';
+          }
+        ?>
         <div class="message <?= $msg['sender_role'] ?>">
           <span class="type-tag"><?= htmlspecialchars($msg['type'] ?? 'Other') ?></span><br>
           <strong><?= ucfirst($msg['sender_role']) ?>:</strong><br>
@@ -106,7 +124,7 @@ $messages = $q->fetchAll(PDO::FETCH_ASSOC);
           <?php foreach ($paths as $fp): ?>
             <a class="file-link" href="<?= htmlspecialchars($fp) ?>" download>📎 <?= basename($fp) ?></a>
           <?php endforeach; ?>
-          <small><?= $msg['sent_at'] ?></small>
+          <small><?= $msg['sent_at'] ?> — <em><?= $seen ?></em></small>
         </div>
       <?php endforeach; ?>
     </div>
@@ -127,7 +145,6 @@ $messages = $q->fetchAll(PDO::FETCH_ASSOC);
   </div>
 
   <div class="new-notice" id="notice">🔔 New!</div>
-
   <audio id="ding" src="https://www.myserver.com/ding.mp3"></audio>
 
   <script>

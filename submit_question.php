@@ -11,40 +11,50 @@ $studentId = $_SESSION['student_id'];
 $error = '';
 $success = '';
 
-// Handle task submission
+// Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $title = trim($_POST['title']);
     $pages = (int)$_POST['pages'];
+    $price = (float)$_POST['price'];
     $description = trim($_POST['description']);
     $other_info = trim($_POST['other_info']);
 
-    // Handle file upload
-    $filePath = '';
-    if (!empty($_FILES['file']['name'])) {
-        $uploadDir = 'uploads/';
-        if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
+    if ($price < 1) {
+        $error = "⚠️ Price must be at least $1.";
+    } elseif ($pages < 1) {
+        $error = "⚠️ Number of pages must be at least 1.";
+    } else {
+        // Handle optional file upload
+        $filePath = '';
+        if (!empty($_FILES['file']['name'])) {
+            $uploadDir = 'uploads/';
+            if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
+            $fileName = uniqid() . '_' . basename($_FILES['file']['name']);
+            $targetPath = $uploadDir . $fileName;
 
-        $fileName = uniqid() . '_' . basename($_FILES['file']['name']);
-        $targetPath = $uploadDir . $fileName;
-
-        if (move_uploaded_file($_FILES['file']['tmp_name'], $targetPath)) {
-            $filePath = $targetPath;
-        } else {
-            $error = "⚠️ File upload failed.";
+            if (move_uploaded_file($_FILES['file']['tmp_name'], $targetPath)) {
+                $filePath = $targetPath;
+            } else {
+                $error = "⚠️ File upload failed.";
+            }
         }
-    }
 
-    if (!$error) {
-        $stmt = $conn->prepare("INSERT INTO questions (student_id, title, pages, description, other_info, file_path) VALUES (:student_id, :title, :pages, :description, :other_info, :file_path)");
-        $stmt->execute([
-            'student_id' => $studentId,
-            'title' => $title,
-            'pages' => $pages,
-            'description' => $description,
-            'other_info' => $other_info,
-            'file_path' => $filePath
-        ]);
-        $success = "✅ Task submitted successfully.";
+        if (!$error) {
+            $stmt = $conn->prepare("
+                INSERT INTO questions (student_id, title, pages, price, description, other_info, file_path, created_at) 
+                VALUES (:student_id, :title, :pages, :price, :description, :other_info, :file_path, NOW())
+            ");
+            $stmt->execute([
+                'student_id' => $studentId,
+                'title' => $title,
+                'pages' => $pages,
+                'price' => $price,
+                'description' => $description,
+                'other_info' => $other_info,
+                'file_path' => $filePath
+            ]);
+            $success = "✅ Task submitted successfully.";
+        }
     }
 }
 
@@ -102,7 +112,8 @@ $tasks = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     <form method="post" enctype="multipart/form-data">
         <input type="text" name="title" placeholder="Title of the Task" required>
-        <input type="number" name="pages" placeholder="Number of Pages" required>
+        <input type="number" name="pages" placeholder="Number of Pages" required min="1">
+        <input type="number" name="price" placeholder="Your Budget in $" required min="1" step="0.01">
         <textarea name="description" placeholder="Task Description" rows="4" required></textarea>
         <textarea name="other_info" placeholder="Other Instructions (optional)" rows="3"></textarea>
         <input type="file" name="file">
@@ -115,6 +126,7 @@ $tasks = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <tr>
                 <th>Title</th>
                 <th>Pages</th>
+                <th>Price ($)</th>
                 <th>Description</th>
                 <th>Other Info</th>
                 <th>File</th>
@@ -125,6 +137,7 @@ $tasks = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <tr>
                     <td><?= htmlspecialchars($task['title']) ?></td>
                     <td><?= $task['pages'] ?></td>
+                    <td><?= number_format($task['price'], 2) ?></td>
                     <td><?= nl2br(htmlspecialchars($task['description'])) ?></td>
                     <td><?= nl2br(htmlspecialchars($task['other_info'])) ?></td>
                     <td>

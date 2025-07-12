@@ -101,14 +101,17 @@ include 'header.php';
         <label for="pages">Number of Pages:</label>
         <input type="number" name="pages" id="pages" required min="1">
 
+        <label for="price">Price (in USD):</label>
+        <input type="number" name="price" id="price" required min="1" step="0.01" placeholder="Enter at least $1">
+
         <label for="description">Description:</label>
         <textarea name="description" id="description" required></textarea>
 
         <label for="other_info">Other Info (optional):</label>
         <textarea name="other_info" id="other_info"></textarea>
 
-        <label for="file">Upload File:</label>
-        <input type="file" name="file" id="file" required>
+        <label for="file">Upload File (optional):</label>
+        <input type="file" name="file" id="file">
 
         <button type="submit">Submit Question</button>
     </form>

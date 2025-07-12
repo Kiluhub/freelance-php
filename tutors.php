@@ -5,7 +5,6 @@
 <head>
     <meta charset="UTF-8">
     <title>Top Tutors - SmartLearn</title>
-     
     <style>
         body {
             font-family: 'Segoe UI', sans-serif;
@@ -99,22 +98,22 @@
 
     <?php
     $tutors = [
-        ["name" => "Dr. Grace Wambui", "subject" => "Nursing & Healthcare", "rating" => 4.9, "img" => "img/tutor1.jpg", "desc" => "Over 8 years of experience in clinical case analysis and nursing essays."],
-        ["name" => "James Otieno", "subject" => "Engineering & Math", "rating" => 4.7, "img" => "img/tutor2.jpg", "desc" => "Mechanical engineer helping students with technical problem solving."],
-        ["name" => "Maria Sanchez", "subject" => "Literature & Humanities", "rating" => 4.8, "img" => "img/tutor3.jpg", "desc" => "Passionate about creative writing, essays, and research reviews."],
-        ["name" => "Ali Mohammed", "subject" => "Finance & Business", "rating" => 4.6, "img" => "img/tutor4.jpg", "desc" => "Expert in financial modeling, accounting, and market analysis."],
-        ["name" => "Chen Liu", "subject" => "Computer Science", "rating" => 5.0, "img" => "img/tutor5.jpg", "desc" => "Specializes in algorithms, data structures, and project help."]
+        ["name" => "Dr. Ali Hassan", "subject" => "Nursing & Healthcare", "rating" => 4.9, "img" => "tutor1.jpg", "desc" => "Over 8 years of experience in clinical case analysis and nursing essays."],
+        ["name" => "James Otieno", "subject" => "Engineering & Math", "rating" => 4.7, "img" => "tutor2.jpg", "desc" => "Mechanical engineer helping students with technical problem solving."],
+        ["name" => "Maria Sanchez", "subject" => "Literature & Humanities", "rating" => 4.8, "img" => "tutor3.jpg", "desc" => "Passionate about creative writing, essays, and research reviews."],
+        ["name" => "Ali Mohammed", "subject" => "Finance & Business", "rating" => 4.6, "img" => "tutor4.jpg", "desc" => "Expert in financial modeling, accounting, and market analysis."],
+        ["name" => "Chen Liu", "subject" => "Computer Science", "rating" => 5.0, "img" => "tutor5.jpg", "desc" => "Specializes in algorithms, data structures, and project help."]
     ];
 
     foreach ($tutors as $tutor):
     ?>
         <div class="tutor-card">
-            <img class="tutor-image" src="<?= $tutor['img'] ?>" alt="Tutor Image">
+            <img class="tutor-image" src="images/<?= htmlspecialchars($tutor['img']) ?>" alt="Tutor Image">
             <div class="tutor-details">
-                <div class="tutor-name"><?= $tutor['name'] ?></div>
-                <div class="tutor-subject"><?= $tutor['subject'] ?></div>
+                <div class="tutor-name"><?= htmlspecialchars($tutor['name']) ?></div>
+                <div class="tutor-subject"><?= htmlspecialchars($tutor['subject']) ?></div>
                 <div class="tutor-rating">⭐ <?= number_format($tutor['rating'], 1) ?>/5.0</div>
-                <div class="tutor-desc"><?= $tutor['desc'] ?></div>
+                <div class="tutor-desc"><?= htmlspecialchars($tutor['desc']) ?></div>
                 <a href="contact.php" class="contact-link">Contact Tutor</a>
             </div>
         </div>
@@ -124,4 +123,5 @@
 
 </body>
 </html>
+
 <?php include 'footer.php'; ?>

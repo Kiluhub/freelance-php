@@ -127,7 +127,6 @@ if (!isset($_SESSION['student_id'])) {
     </div>
     <div class="cta">
         <h1>Join Thousands of Students Getting Help Today!</h1>
-        <a href="post_question.php" class="post-btn"><span class="btn-text">Post Your Question</span></a>
     </div>
 </section>
 

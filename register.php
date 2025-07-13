@@ -7,32 +7,35 @@ $error = ''; // Error holder
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $name = trim($_POST['full_name']);
     $email = trim($_POST['email']);
-    $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
+    $rawPassword = $_POST['password'];
 
-    try {
-        // Step 1: Check if email already exists
-        $check = $conn->prepare("SELECT 1 FROM users WHERE email = :email LIMIT 1");
-        $check->bindParam(':email', $email);
-        $check->execute();
+    // Server-side password validation
+    if (!preg_match('/^(?=.*[A-Za-z])(?=.*\d)(?=.*[\W_]).{6,}$/', $rawPassword)) {
+        $error = "⚠️ Password must be at least 6 characters and include letters, numbers, and special characters.";
+    } else {
+        $password = password_hash($rawPassword, PASSWORD_DEFAULT);
 
-        if ($check->fetch()) {
-            $error = "⚠️ Email already exists. Try logging in.";
-        } else {
-            // Step 2: Insert new user
-            $stmt = $conn->prepare("INSERT INTO users (full_name, email, password) VALUES (:name, :email, :password)");
-            $stmt->bindParam(':name', $name);
-            $stmt->bindParam(':email', $email);
-            $stmt->bindParam(':password', $password);
-            $stmt->execute();
+        try {
+            // Step 1: Check if email already exists
+            $check = $conn->prepare("SELECT 1 FROM users WHERE email = :email LIMIT 1");
+            $check->bindParam(':email', $email);
+            $check->execute();
 
-            // ✅ Redirect to login BEFORE output
-            header("Location: login.php");
-            exit();
-        }
-    } catch (PDOException $e) {
-        if (str_contains($e->getMessage(), 'duplicate key')) {
-            $error = "This email is already registered.";
-        } else {
+            if ($check->fetch()) {
+                $error = "⚠️ Email already exists. Try logging in.";
+            } else {
+                // Step 2: Insert new user
+                $stmt = $conn->prepare("INSERT INTO users (full_name, email, password) VALUES (:name, :email, :password)");
+                $stmt->bindParam(':name', $name);
+                $stmt->bindParam(':email', $email);
+                $stmt->bindParam(':password', $password);
+                $stmt->execute();
+
+                // ✅ Redirect to login BEFORE output
+                header("Location: login.php");
+                exit();
+            }
+        } catch (PDOException $e) {
             $error = "Registration failed. Please try again.";
         }
     }
@@ -73,20 +76,36 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         }
         a { display: block; margin-top: 10px; text-align: center; }
         .error { color: red; margin-top: 10px; text-align: center; }
+        .info { font-size: 14px; color: #555; margin-top: 5px; }
     </style>
 </head>
 <body>
 <div class="form-box">
     <h2>Student Registration</h2>
-    <form method="post">
+    <form method="post" onsubmit="return validatePassword()">
         <input type="text" name="full_name" placeholder="Full Name" required>
         <input type="email" name="email" placeholder="Email Address" required>
-        <input type="password" name="password" placeholder="Create Password" required>
+        <input type="password" id="password" name="password" placeholder="Create Password" required>
+        <p class="info">Password must be at least 6 characters, and include a number, letter, and symbol (e.g. !, @, #).</p>
         <button type="submit">Register</button>
         <a href="login.php">Already have an account? Login</a>
     </form>
     <?php if (!empty($error)) echo "<p class='error'>$error</p>"; ?>
 </div>
+
+<script>
+function validatePassword() {
+    const password = document.getElementById("password").value;
+    const regex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[\W_]).{6,}$/;
+
+    if (!regex.test(password)) {
+        alert("Password must be at least 6 characters long and include at least one letter, one number, and one special character.");
+        return false;
+    }
+    return true;
+}
+</script>
+
 </body>
 </html>
 

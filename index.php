@@ -39,7 +39,6 @@ include 'header.php';
     .carousel {
         display: flex;
         justify-content: center;
-        gap: 20px;
         margin-bottom: 30px;
         animation: fadeIn 2s ease;
     }
@@ -138,10 +137,24 @@ include 'header.php';
 
 <section class="hero">
     <div class="carousel">
-        <img src="images/student1.jpg" alt="Student 1">
-        <img src="images/student2.jpg" alt="Student 2">
-        <img src="images/student3.jpg" alt="Student 3">
+        <img id="carousel-img" src="images/student1.jpg" alt="Student Carousel">
     </div>
+
+    <script>
+        const images = [
+            "images/student1.jpg",
+            "images/student2.jpg",
+            "images/student3.jpg"
+        ];
+        let current = 0;
+        const imgElement = document.getElementById("carousel-img");
+
+        setInterval(() => {
+            current = (current + 1) % images.length;
+            imgElement.src = images[current];
+        }, 500);
+    </script>
+
     <div class="cta">
         <h1>Join Thousands of Students Getting Help Today!</h1>
         <a href="post_question.php" class="post-btn">➕ Post Your Question</a>

@@ -162,9 +162,8 @@ include 'header.php';
         const images = [
             "images/student0.jpg",
             "images/student2.jpg",
-            "images/student9.jpg"
+            "images/student9.jpg",
             "images/student8.jpg"
-
         ];
         let current = 0;
         const imgElement = document.getElementById("carousel-img");

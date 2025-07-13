@@ -32,7 +32,7 @@ include 'header.php';
         flex-direction: column;
         justify-content: flex-start;
         align-items: center;
-        padding-top: 0; /* Fully removes space above image */
+        padding-top: 40px; /* Keep heading/button spacing */
     }
 
     @keyframes gradientShift {
@@ -45,7 +45,7 @@ include 'header.php';
         width: 100%;
         max-height: 70vh;
         overflow: hidden;
-        margin-top: 0; /* No margin above image */
+        margin-top: -20px; /* Lift image upward slightly (~1 inch) */
     }
 
     .carousel img {
@@ -139,16 +139,16 @@ include 'header.php';
 </style>
 
 <section class="hero">
-    <div class="carousel">
-        <img id="carousel-img" src="images/student1.jpg" alt="Student image">
-    </div>
-
     <div class="cta">
         <h1>Join Thousands of Students Getting Help Today!</h1>
         <a href="post_question.php" class="post-btn">➕ Post Your Question</a>
         <?php if ($hasTasks): ?>
             <a href="submit_question.php" class="tasks-btn">📁 View My Tasks</a>
         <?php endif; ?>
+    </div>
+
+    <div class="carousel">
+        <img id="carousel-img" src="images/student1.jpg" alt="Student image">
     </div>
 
     <script>

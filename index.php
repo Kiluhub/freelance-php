@@ -32,7 +32,7 @@ include 'header.php';
         flex-direction: column;
         justify-content: flex-start;
         align-items: center;
-        padding-top: 40px;
+        padding-top: 0; /* Fully removes space above image */
     }
 
     @keyframes gradientShift {
@@ -45,7 +45,7 @@ include 'header.php';
         width: 100%;
         max-height: 70vh;
         overflow: hidden;
-        margin-top: 30px;
+        margin-top: 0; /* No margin above image */
     }
 
     .carousel img {
@@ -57,7 +57,7 @@ include 'header.php';
 
     .cta h1 {
         font-size: 2.8rem;
-        margin-bottom: 20px;
+        margin-bottom: 10px;
         color: #fff;
         text-shadow: 2px 2px 5px rgba(0,0,0,0.3);
     }
@@ -139,16 +139,16 @@ include 'header.php';
 </style>
 
 <section class="hero">
+    <div class="carousel">
+        <img id="carousel-img" src="images/student1.jpg" alt="Student image">
+    </div>
+
     <div class="cta">
         <h1>Join Thousands of Students Getting Help Today!</h1>
         <a href="post_question.php" class="post-btn">➕ Post Your Question</a>
         <?php if ($hasTasks): ?>
             <a href="submit_question.php" class="tasks-btn">📁 View My Tasks</a>
         <?php endif; ?>
-    </div>
-
-    <div class="carousel">
-        <img id="carousel-img" src="images/student0.jpg" alt="Student image">
     </div>
 
     <script>
@@ -168,7 +168,7 @@ include 'header.php';
                 img.src = images[current];
                 img.style.opacity = 1;
             }, 200);
-        }, 1500);
+        }, 1500); // Change image every 1.5 seconds
     </script>
 </section>
 

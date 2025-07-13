@@ -32,7 +32,7 @@ include 'header.php';
         flex-direction: column;
         justify-content: flex-start;
         align-items: center;
-        padding-top: 40px; /* Keep heading/button spacing */
+        padding-top: 40px;
     }
 
     @keyframes gradientShift {
@@ -45,7 +45,7 @@ include 'header.php';
         width: 100%;
         max-height: 70vh;
         overflow: hidden;
-        margin-top: -20px; /* Lift image upward slightly (~1 inch) */
+        margin-top: 30px;
     }
 
     .carousel img {
@@ -57,7 +57,7 @@ include 'header.php';
 
     .cta h1 {
         font-size: 2.8rem;
-        margin-bottom: 10px;
+        margin-bottom: 20px;
         color: #fff;
         text-shadow: 2px 2px 5px rgba(0,0,0,0.3);
     }
@@ -148,7 +148,7 @@ include 'header.php';
     </div>
 
     <div class="carousel">
-        <img id="carousel-img" src="images/student1.jpg" alt="Student image">
+        <img id="carousel-img" src="images/student0.jpg" alt="Student image">
     </div>
 
     <script>
@@ -168,7 +168,7 @@ include 'header.php';
                 img.src = images[current];
                 img.style.opacity = 1;
             }, 200);
-        }, 1500); // Change image every 1.5 seconds
+        }, 1500);
     </script>
 </section>
 

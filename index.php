@@ -153,10 +153,10 @@ include 'header.php';
 
     <script>
         const images = [
-            "images/student0.jpg",
+            "images/student1.jpg",
             "images/student2.jpg",
-            "images/student9.jpg",
-            "images/student8.jpg"
+            "images/student3.jpg",
+            "images/student4.jpg"
         ];
         let current = 0;
         const img = document.getElementById("carousel-img");

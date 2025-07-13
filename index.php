@@ -30,8 +30,9 @@ include 'header.php';
         min-height: 90vh;
         display: flex;
         flex-direction: column;
-        justify-content: center;
+        justify-content: flex-start;
         align-items: center;
+        padding-top: 40px;
     }
 
     @keyframes gradientShift {
@@ -44,6 +45,7 @@ include 'header.php';
         width: 100%;
         max-height: 70vh;
         overflow: hidden;
+        margin-top: 30px;
     }
 
     .carousel img {
@@ -53,10 +55,6 @@ include 'header.php';
         border-radius: 0;
         box-shadow: 0 8px 20px rgba(0,0,0,0.2);
         transition: opacity 0.5s ease;
-    }
-
-    .cta {
-        margin-top: 20px;
     }
 
     .cta h1 {
@@ -148,6 +146,14 @@ include 'header.php';
 </style>
 
 <section class="hero">
+    <div class="cta">
+        <h1>Join Thousands of Students Getting Help Today!</h1>
+        <a href="post_question.php" class="post-btn">➕ Post Your Question</a>
+        <?php if ($hasTasks): ?>
+            <a href="submit_question.php" class="tasks-btn">📁 View My Tasks</a>
+        <?php endif; ?>
+    </div>
+
     <div class="carousel">
         <img id="carousel-img" src="images/student1.jpg" alt="Student Carousel">
     </div>
@@ -168,16 +174,8 @@ include 'header.php';
                 imgElement.src = images[current];
                 imgElement.style.opacity = 1;
             }, 200);
-        }, 1000); // change every 1 second
+        }, 1500); // change every 1.5 seconds
     </script>
-
-    <div class="cta">
-        <h1>Join Thousands of Students Getting Help Today!</h1>
-        <a href="post_question.php" class="post-btn">➕ Post Your Question</a>
-        <?php if ($hasTasks): ?>
-            <a href="submit_question.php" class="tasks-btn">📁 View My Tasks</a>
-        <?php endif; ?>
-    </div>
 </section>
 
 <section class="features">

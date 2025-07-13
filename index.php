@@ -23,11 +23,15 @@ include 'header.php';
     .hero {
         position: relative;
         text-align: center;
-        padding: 60px 20px;
         color: white;
         background: linear-gradient(to right, #004d7a, #008793, #00bf72, #a8eb12);
         background-size: 400% 400%;
         animation: gradientShift 10s ease infinite;
+        min-height: 90vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
     }
 
     @keyframes gradientShift {
@@ -37,26 +41,26 @@ include 'header.php';
     }
 
     .carousel {
-        display: flex;
-        justify-content: center;
-        margin-bottom: 30px;
-        animation: fadeIn 2s ease;
+        width: 100%;
+        max-height: 70vh;
+        overflow: hidden;
     }
 
     .carousel img {
-        width: 250px;
-        height: 160px;
-        border-radius: 12px;
+        width: 100%;
+        height: 70vh;
+        object-fit: cover;
+        border-radius: 0;
         box-shadow: 0 8px 20px rgba(0,0,0,0.2);
-        transition: transform 0.3s ease;
+        transition: opacity 0.5s ease;
     }
 
-    .carousel img:hover {
-        transform: scale(1.05);
+    .cta {
+        margin-top: 20px;
     }
 
     .cta h1 {
-        font-size: 2.5rem;
+        font-size: 2.8rem;
         margin-bottom: 20px;
         color: #fff;
         text-shadow: 2px 2px 5px rgba(0,0,0,0.3);
@@ -123,9 +127,17 @@ include 'header.php';
     }
 
     @media (max-width: 768px) {
-        .carousel {
-            flex-direction: column;
-            align-items: center;
+        .carousel img {
+            height: 50vh;
+        }
+
+        .cta h1 {
+            font-size: 2rem;
+        }
+
+        .post-btn, .tasks-btn {
+            padding: 12px 20px;
+            font-size: 16px;
         }
     }
 
@@ -151,8 +163,12 @@ include 'header.php';
 
         setInterval(() => {
             current = (current + 1) % images.length;
-            imgElement.src = images[current];
-        }, 500);
+            imgElement.style.opacity = 0;
+            setTimeout(() => {
+                imgElement.src = images[current];
+                imgElement.style.opacity = 1;
+            }, 200);
+        }, 1000); // change every 1 second
     </script>
 
     <div class="cta">

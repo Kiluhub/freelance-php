@@ -99,9 +99,9 @@
     <?php
     $tutors = [
         ["name" => "Dr. Ali Hassan", "subject" => "Nursing & Healthcare", "rating" => 4.9, "img" => "tutor1.jpg", "desc" => "Over 8 years of experience in clinical case analysis and nursing essays."],
-        ["name" => "James Otieno", "subject" => "Engineering & Math", "rating" => 4.7, "img" => "tutor2.jpg", "desc" => "Mechanical engineer helping students with technical problem solving."],
+        ["name" => "James Martin", "subject" => "Engineering & Math", "rating" => 4.7, "img" => "tutor6.jpg", "desc" => "Mechanical engineer helping students with technical problem solving."],
         ["name" => "Maria Sanchez", "subject" => "Literature & Humanities", "rating" => 4.8, "img" => "tutor3.jpg", "desc" => "Passionate about creative writing, essays, and research reviews."],
-        ["name" => "Ali Mohammed", "subject" => "Finance & Business", "rating" => 4.6, "img" => "tutor4.jpg", "desc" => "Expert in financial modeling, accounting, and market analysis."],
+        ["name" => "Alice Martinez", "subject" => "Finance & Business", "rating" => 4.6, "img" => "tutor4.jpg", "desc" => "Expert in financial modeling, accounting, and market analysis."],
         ["name" => "Chen Liu", "subject" => "Computer Science", "rating" => 5.0, "img" => "tutor5.jpg", "desc" => "Specializes in algorithms, data structures, and project help."]
     ];
 

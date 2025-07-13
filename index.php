@@ -46,29 +46,13 @@ include 'header.php';
         max-height: 70vh;
         overflow: hidden;
         margin-top: 30px;
-        position: relative;
     }
 
     .carousel img {
         width: 100%;
         height: 70vh;
         object-fit: cover;
-        border-radius: 0;
-        box-shadow: 0 8px 20px rgba(0,0,0,0.2);
-        transition: opacity 0.5s ease;
-        position: absolute;
-        top: 0;
-        left: 0;
-    }
-
-    .carousel img.hidden {
-        opacity: 0;
-        z-index: 1;
-    }
-
-    .carousel img.active {
-        opacity: 1;
-        z-index: 2;
+        transition: opacity 0.5s ease-in-out;
     }
 
     .cta h1 {
@@ -164,25 +148,27 @@ include 'header.php';
     </div>
 
     <div class="carousel">
-        <img src="images/student0.jpg" class="active" alt="Slide 1">
-        <img src="images/student2.jpg" class="hidden" alt="Slide 2">
-        <img src="images/student9.jpg" class="hidden" alt="Slide 3">
-        <img src="images/student8.jpg" class="hidden" alt="Slide 4">
+        <img id="carousel-img" src="images/student0.jpg" alt="Student image">
     </div>
 
     <script>
-        const slides = document.querySelectorAll('.carousel img');
-        let currentSlide = 0;
+        const images = [
+            "images/student0.jpg",
+            "images/student2.jpg",
+            "images/student9.jpg",
+            "images/student8.jpg"
+        ];
+        let current = 0;
+        const img = document.getElementById("carousel-img");
 
         setInterval(() => {
-            slides[currentSlide].classList.remove('active');
-            slides[currentSlide].classList.add('hidden');
-
-            currentSlide = (currentSlide + 1) % slides.length;
-
-            slides[currentSlide].classList.remove('hidden');
-            slides[currentSlide].classList.add('active');
-        }, 1500); // Change every 1.5 seconds
+            current = (current + 1) % images.length;
+            img.style.opacity = 0;
+            setTimeout(() => {
+                img.src = images[current];
+                img.style.opacity = 1;
+            }, 200);
+        }, 1500);
     </script>
 </section>
 

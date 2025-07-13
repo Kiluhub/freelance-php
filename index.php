@@ -46,6 +46,7 @@ include 'header.php';
         max-height: 70vh;
         overflow: hidden;
         margin-top: 30px;
+        position: relative;
     }
 
     .carousel img {
@@ -55,6 +56,19 @@ include 'header.php';
         border-radius: 0;
         box-shadow: 0 8px 20px rgba(0,0,0,0.2);
         transition: opacity 0.5s ease;
+        position: absolute;
+        top: 0;
+        left: 0;
+    }
+
+    .carousel img.hidden {
+        opacity: 0;
+        z-index: 1;
+    }
+
+    .carousel img.active {
+        opacity: 1;
+        z-index: 2;
     }
 
     .cta h1 {
@@ -138,11 +152,6 @@ include 'header.php';
             font-size: 16px;
         }
     }
-
-    @keyframes fadeIn {
-        from {opacity: 0;}
-        to {opacity: 1;}
-    }
 </style>
 
 <section class="hero">
@@ -155,27 +164,25 @@ include 'header.php';
     </div>
 
     <div class="carousel">
-        <img id="carousel-img" src="images/student0.jpg" alt="Student Carousel">
+        <img src="images/student0.jpg" class="active" alt="Slide 1">
+        <img src="images/student2.jpg" class="hidden" alt="Slide 2">
+        <img src="images/student9.jpg" class="hidden" alt="Slide 3">
+        <img src="images/student8.jpg" class="hidden" alt="Slide 4">
     </div>
 
     <script>
-        const images = [
-            "images/student0.jpg",
-            "images/student2.jpg",
-            "images/student9.jpg",
-            "images/student8.jpg"
-        ];
-        let current = 0;
-        const imgElement = document.getElementById("carousel-img");
+        const slides = document.querySelectorAll('.carousel img');
+        let currentSlide = 0;
 
         setInterval(() => {
-            current = (current + 1) % images.length;
-            imgElement.style.opacity = 0;
-            setTimeout(() => {
-                imgElement.src = images[current];
-                imgElement.style.opacity = 1;
-            }, 200);
-        }, 1500); // change every 1.5 seconds
+            slides[currentSlide].classList.remove('active');
+            slides[currentSlide].classList.add('hidden');
+
+            currentSlide = (currentSlide + 1) % slides.length;
+
+            slides[currentSlide].classList.remove('hidden');
+            slides[currentSlide].classList.add('active');
+        }, 1500); // Change every 1.5 seconds
     </script>
 </section>
 

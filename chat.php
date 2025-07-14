@@ -51,10 +51,9 @@ if (!$senderRole || (!$isStudent && !$isAdmin)) {
 
 // If student, verify they own the task
 if ($isStudent) {
-    $check = $conn->prepare("SELECT q.id, q.question, s.name as student_name 
-                            FROM questions q 
-                            JOIN students s ON q.student_id = s.id 
-                            WHERE q.id = :tid AND q.student_id = :sid");
+    $check = $conn->prepare("SELECT id, question, student_id, student_name 
+                            FROM questions 
+                            WHERE id = :tid AND student_id = :sid");
     $check->execute(['tid' => $taskId, 'sid' => $userId]);
     $taskInfo = $check->fetch(PDO::FETCH_ASSOC);
     
@@ -63,10 +62,9 @@ if ($isStudent) {
     }
 } else {
     // For admin, get task info without restriction
-    $check = $conn->prepare("SELECT q.id, q.question, s.name as student_name 
-                            FROM questions q 
-                            JOIN students s ON q.student_id = s.id 
-                            WHERE q.id = :tid");
+    $check = $conn->prepare("SELECT id, question, student_id, student_name 
+                            FROM questions 
+                            WHERE id = :tid");
     $check->execute(['tid' => $taskId]);
     $taskInfo = $check->fetch(PDO::FETCH_ASSOC);
     
@@ -283,7 +281,7 @@ if ($isAdmin) {
     <div class="chat-header">
         <h2>Chat System - Task #<?= htmlspecialchars($taskId) ?></h2>
         <div>Task: <?= htmlspecialchars($taskInfo['question']) ?></div>
-        <div>Student: <?= htmlspecialchars($taskInfo['student_name']) ?></div>
+        <div>Student: <?= htmlspecialchars($taskInfo['student_name'] ?? 'Student ID: ' . $taskInfo['student_id']) ?></div>
     </div>
 
     <div class="user-info">

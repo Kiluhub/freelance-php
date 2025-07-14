@@ -2,27 +2,76 @@
 session_start();
 require 'connect.php';
 
+// Debug session information (remove in production)
+error_log("Session data: " . print_r($_SESSION, true));
+
 // Get task ID
 $taskId = $_GET['task_id'] ?? null;
 if (!$taskId || !is_numeric($taskId)) {
     die("❌ No task specified.");
 }
 
-// Detect user role
-$isStudent = isset($_SESSION['student_id']);
-$isAdmin = isset($_SESSION['is_admin']) && $_SESSION['is_admin'] === true;
-$senderRole = $isStudent ? 'student' : ($isAdmin ? 'admin' : null);
+// Enhanced role detection with proper session validation
+$isStudent = false;
+$isAdmin = false;
+$senderRole = null;
+$userId = null;
+$userName = "Unknown";
 
-if (!$senderRole) {
-    die("❌ Unauthorized. Please log in.");
+// Check if user is logged in as student
+if (isset($_SESSION['student_id']) && !empty($_SESSION['student_id'])) {
+    $isStudent = true;
+    $senderRole = 'student';
+    $userId = $_SESSION['student_id'];
+    $userName = $_SESSION['student_name'] ?? $_SESSION['username'] ?? "Student";
+}
+
+// Check if user is logged in as admin (admin takes precedence)
+if (isset($_SESSION['is_admin']) && $_SESSION['is_admin'] === true) {
+    $isAdmin = true;
+    $isStudent = false; // Admin overrides student
+    $senderRole = 'admin';
+    $userId = $_SESSION['admin_id'] ?? $_SESSION['user_id'] ?? 'admin';
+    $userName = $_SESSION['admin_name'] ?? $_SESSION['username'] ?? "Admin";
+}
+
+// Additional admin check for different session structures
+if (isset($_SESSION['user_type']) && $_SESSION['user_type'] === 'admin') {
+    $isAdmin = true;
+    $isStudent = false;
+    $senderRole = 'admin';
+    $userId = $_SESSION['user_id'] ?? 'admin';
+    $userName = $_SESSION['username'] ?? "Admin";
+}
+
+// Validate that user has a valid role
+if (!$senderRole || (!$isStudent && !$isAdmin)) {
+    die("❌ Unauthorized. Please log in properly. Role: " . ($senderRole ?? 'none'));
 }
 
 // If student, verify they own the task
 if ($isStudent) {
-    $check = $conn->prepare("SELECT id FROM questions WHERE id = :tid AND student_id = :sid");
-    $check->execute(['tid' => $taskId, 'sid' => $_SESSION['student_id']]);
-    if (!$check->fetch()) {
-        die("❌ Access denied. This task doesn’t belong to you.");
+    $check = $conn->prepare("SELECT q.id, q.question, s.name as student_name 
+                            FROM questions q 
+                            JOIN students s ON q.student_id = s.id 
+                            WHERE q.id = :tid AND q.student_id = :sid");
+    $check->execute(['tid' => $taskId, 'sid' => $userId]);
+    $taskInfo = $check->fetch(PDO::FETCH_ASSOC);
+    
+    if (!$taskInfo) {
+        die("❌ Access denied. This task doesn't belong to you or doesn't exist.");
+    }
+} else {
+    // For admin, get task info without restriction
+    $check = $conn->prepare("SELECT q.id, q.question, s.name as student_name 
+                            FROM questions q 
+                            JOIN students s ON q.student_id = s.id 
+                            WHERE q.id = :tid");
+    $check->execute(['tid' => $taskId]);
+    $taskInfo = $check->fetch(PDO::FETCH_ASSOC);
+    
+    if (!$taskInfo) {
+        die("❌ Task not found.");
     }
 }
 
@@ -36,22 +85,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty(trim($_POST['message']))) {
     if (!empty($_FILES['attachment']['name'][0])) {
         $uploadDir = 'uploads/chat/';
         if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
+        
         foreach ($_FILES['attachment']['tmp_name'] as $i => $tmp) {
-            $name = basename($_FILES['attachment']['name'][$i]);
-            $uniq = uniqid() . '_' . $name;
-            $dest = $uploadDir . $uniq;
-            if (move_uploaded_file($tmp, $dest)) {
-                $files_paths[] = $dest;
+            if (is_uploaded_file($tmp)) {
+                $name = basename($_FILES['attachment']['name'][$i]);
+                $uniq = uniqid() . '_' . $name;
+                $dest = $uploadDir . $uniq;
+                
+                if (move_uploaded_file($tmp, $dest)) {
+                    $files_paths[] = $dest;
+                }
             }
         }
     }
     $files_csv = implode(',', $files_paths);
 
-    $stmt = $conn->prepare("INSERT INTO messages (task_id, sender_role, message, type, file_path) 
-                            VALUES (:tid, :role, :msg, :type, :file_path)");
+    // Insert message with proper user identification
+    $stmt = $conn->prepare("INSERT INTO messages (task_id, sender_role, sender_id, sender_name, message, type, file_path) 
+                            VALUES (:tid, :role, :sender_id, :sender_name, :msg, :type, :file_path)");
     $stmt->execute([
         'tid' => $taskId,
         'role' => $senderRole,
+        'sender_id' => $userId,
+        'sender_name' => $userName,
         'msg' => $msg,
         'type' => $type,
         'file_path' => $files_csv
@@ -61,17 +117,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty(trim($_POST['message']))) {
     exit;
 }
 
-// Fetch messages
+// Fetch messages with sender information
 $q = $conn->prepare("SELECT * FROM messages WHERE task_id = :tid ORDER BY sent_at ASC");
 $q->execute(['tid' => $taskId]);
 $messages = $q->fetchAll(PDO::FETCH_ASSOC);
 
-// Mark as seen
+// Mark messages as seen based on current user role
 if ($isAdmin) {
-    $conn->prepare("UPDATE messages SET seen_by_admin = TRUE WHERE task_id = :tid AND sender_role = 'student'")
+    $conn->prepare("UPDATE messages SET seen_by_admin = TRUE WHERE task_id = :tid AND sender_role = 'student' AND seen_by_admin = FALSE")
          ->execute(['tid' => $taskId]);
 } elseif ($isStudent) {
-    $conn->prepare("UPDATE messages SET seen_by_student = TRUE WHERE task_id = :tid AND sender_role = 'admin'")
+    $conn->prepare("UPDATE messages SET seen_by_student = TRUE WHERE task_id = :tid AND sender_role = 'admin' AND seen_by_student = FALSE")
          ->execute(['tid' => $taskId]);
 }
 ?>
@@ -81,34 +137,177 @@ if ($isAdmin) {
 <head>
     <title>Chat – Task #<?= htmlspecialchars($taskId) ?></title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #eef2f7; margin:0; padding:20px; }
-        .chat-box { max-width:900px;margin:auto;background:#fff;padding:25px;border-radius:10px;box-shadow:0 0 12px rgba(0,0,0,0.1); }
-        h2 { text-align:center;color:#333;margin-bottom:20px; }
-        .msg-container { display:flex; flex-direction:column; gap:12px; max-height:600px; overflow-y:auto; margin-bottom:20px; }
-        .message { padding:12px 16px;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,0.1); position:relative; max-width:75%; }
-        .message.admin { align-self:flex-end; background:#e1dff8; }
-        .message.student { align-self:flex-start; background:#dcf8c6; }
-        .type-tag { font-size:12px; background:#444; color:#fff; padding:2px 6px; border-radius:4px; display:inline-block; margin-bottom:5px; }
-        .file-link { display:block; font-size:13px; margin-top:5px; }
-        form textarea, select, input[type="file"] { width:100%; padding:12px; font-size:14px; border-radius:8px; border:1px solid #ccc; margin-top:10px; }
-        button { margin-top:15px; padding:12px 24px; background:#111; color:white; border:none; border-radius:6px; font-size:16px; cursor:pointer; }
-        .back-link { display:block; text-align:center; margin-top:30px; color:#444; font-weight:bold; text-decoration:none; }
-        .back-link:hover { color:#000; }
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            background: #eef2f7; 
+            margin:0; 
+            padding:20px; 
+        }
+        .chat-box { 
+            max-width:900px;
+            margin:auto;
+            background:#fff;
+            padding:25px;
+            border-radius:10px;
+            box-shadow:0 0 12px rgba(0,0,0,0.1); 
+        }
+        .chat-header {
+            background: <?= $isAdmin ? '#2c3e50' : '#27ae60' ?>;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .user-info {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+        h2 { 
+            text-align:center;
+            color:#333;
+            margin-bottom:20px; 
+        }
+        .msg-container { 
+            display:flex; 
+            flex-direction:column; 
+            gap:12px; 
+            max-height:600px; 
+            overflow-y:auto; 
+            margin-bottom:20px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .message { 
+            padding:12px 16px;
+            border-radius:8px;
+            box-shadow:0 1px 4px rgba(0,0,0,0.1); 
+            position:relative; 
+            max-width:75%; 
+        }
+        .message.admin { 
+            align-self:flex-end; 
+            background:#e3f2fd; 
+            border-left: 4px solid #2196f3;
+        }
+        .message.student { 
+            align-self:flex-start; 
+            background:#e8f5e8; 
+            border-left: 4px solid #4caf50;
+        }
+        .sender-info {
+            font-weight: bold;
+            color: #444;
+            font-size: 13px;
+            margin-bottom: 5px;
+        }
+        .type-tag { 
+            font-size:12px; 
+            background:#444; 
+            color:#fff; 
+            padding:2px 6px; 
+            border-radius:4px; 
+            display:inline-block; 
+            margin-bottom:5px; 
+        }
+        .type-tag.answer { background: #28a745; }
+        .type-tag.update { background: #ffc107; color: #000; }
+        .type-tag.info { background: #17a2b8; }
+        .file-link { 
+            display:block; 
+            font-size:13px; 
+            margin-top:5px;
+            color: #007bff;
+            text-decoration: none;
+        }
+        .file-link:hover { text-decoration: underline; }
+        .message-form {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        form textarea, select, input[type="file"] { 
+            width:100%; 
+            padding:12px; 
+            font-size:14px; 
+            border-radius:8px; 
+            border:1px solid #ccc; 
+            margin-top:10px;
+            box-sizing: border-box;
+        }
+        button { 
+            margin-top:15px; 
+            padding:12px 24px; 
+            background: <?= $isAdmin ? '#2c3e50' : '#27ae60' ?>; 
+            color:white; 
+            border:none; 
+            border-radius:6px; 
+            font-size:16px; 
+            cursor:pointer;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: <?= $isAdmin ? '#34495e' : '#2ecc71' ?>;
+        }
+        .back-link { 
+            display:block; 
+            text-align:center; 
+            margin-top:30px; 
+            color:#444; 
+            font-weight:bold; 
+            text-decoration:none;
+            padding: 10px;
+            background: #e9ecef;
+            border-radius: 5px;
+        }
+        .back-link:hover { color:#000; background: #dee2e6; }
+        .timestamp {
+            font-size: 11px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .seen-status {
+            font-size: 11px;
+            color: #28a745;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
 <div class="chat-box">
-    <h2><?= $isAdmin ? 'Admin Panel' : 'Student Panel' ?> – Task #<?= htmlspecialchars($taskId) ?></h2>
+    <div class="chat-header">
+        <h2>Chat System - Task #<?= htmlspecialchars($taskId) ?></h2>
+        <div>Task: <?= htmlspecialchars($taskInfo['question']) ?></div>
+        <div>Student: <?= htmlspecialchars($taskInfo['student_name']) ?></div>
+    </div>
+
+    <div class="user-info">
+        <strong>Logged in as:</strong> <?= htmlspecialchars($userName) ?> 
+        (<?= $isAdmin ? 'Administrator' : 'Student' ?>)
+        <br>
+        <strong>Role:</strong> <?= ucfirst($senderRole) ?>
+        <br>
+        <strong>User ID:</strong> <?= htmlspecialchars($userId) ?>
+    </div>
 
     <div class="msg-container" id="msgs">
         <?php if (empty($messages)): ?>
-            <p style="color:#888;text-align:center;">No messages yet. Start below.</p>
+            <p style="color:#888;text-align:center;">No messages yet. Start the conversation below.</p>
         <?php endif; ?>
 
         <?php foreach ($messages as $msg): ?>
             <?php
                 $paths = array_filter(explode(',', $msg['file_path']));
                 $role = $msg['sender_role'];
+                $senderName = $msg['sender_name'] ?? ucfirst($role);
+                $senderId = $msg['sender_id'] ?? 'unknown';
+                
+                // Determine seen status
                 $seen = '';
                 if ($senderRole === 'admin' && $role === 'student') {
                     $seen = $msg['seen_by_admin'] ? '✅ Seen' : '🕓 Unread';
@@ -117,30 +316,73 @@ if ($isAdmin) {
                 }
             ?>
             <div class="message <?= $role ?>">
-                <span class="type-tag"><?= htmlspecialchars($msg['type'] ?? 'Other') ?></span><br>
-                <strong><?= ucfirst($role) ?>:</strong><br>
-                <?= nl2br(htmlspecialchars($msg['message'])) ?>
+                <div class="sender-info">
+                    <?= htmlspecialchars($senderName) ?> (<?= ucfirst($role) ?>)
+                    <?php if ($isAdmin): ?>
+                        - ID: <?= htmlspecialchars($senderId) ?>
+                    <?php endif; ?>
+                </div>
+                
+                <span class="type-tag <?= strtolower($msg['type']) ?>">
+                    <?= htmlspecialchars($msg['type'] ?? 'Other') ?>
+                </span>
+                
+                <div style="margin-top: 8px;">
+                    <?= nl2br(htmlspecialchars($msg['message'])) ?>
+                </div>
+                
                 <?php foreach ($paths as $fp): ?>
-                    <a class="file-link" href="<?= htmlspecialchars($fp) ?>" download>📎 <?= basename($fp) ?></a>
+                    <a class="file-link" href="<?= htmlspecialchars($fp) ?>" download>
+                        📎 <?= basename($fp) ?>
+                    </a>
                 <?php endforeach; ?>
-                <small><?= $msg['sent_at'] ?> — <em><?= $seen ?></em></small>
+                
+                <div class="timestamp">
+                    <?= date('M j, Y g:i A', strtotime($msg['sent_at'])) ?>
+                    <?php if ($seen): ?>
+                        <span class="seen-status"> — <?= $seen ?></span>
+                    <?php endif; ?>
+                </div>
             </div>
         <?php endforeach; ?>
     </div>
 
-    <form method="post" enctype="multipart/form-data">
-        <textarea name="message" placeholder="Type your message…" required></textarea>
-        <select name="type" required>
-            <option value="Answer">Answer</option>
-            <option value="Update">Update</option>
-            <option value="Info">Info</option>
-            <option value="Other" selected>Other</option>
-        </select>
-        <input type="file" name="attachment[]" multiple>
-        <button type="submit">Send</button>
-    </form>
+    <div class="message-form">
+        <h3>Send Message</h3>
+        <form method="post" enctype="multipart/form-data">
+            <textarea name="message" placeholder="Type your message…" required rows="4"></textarea>
+            
+            <select name="type" required>
+                <option value="Answer">Answer</option>
+                <option value="Update">Update</option>
+                <option value="Info">Info</option>
+                <option value="Other" selected>Other</option>
+            </select>
+            
+            <input type="file" name="attachment[]" multiple accept="*/*">
+            <small style="color: #666;">You can attach multiple files</small>
+            
+            <button type="submit">Send Message</button>
+        </form>
+    </div>
 
-    <a class="back-link" href="<?= $isAdmin ? 'admin_dashboard.php' : 'submit_question.php' ?>">⬅ Back to Tasks</a>
+    <a class="back-link" href="<?= $isAdmin ? 'admin_dashboard.php' : 'submit_question.php' ?>">
+        ⬅ Back to <?= $isAdmin ? 'Admin Dashboard' : 'Student Tasks' ?>
+    </a>
 </div>
+
+<script>
+// Auto-scroll to bottom of messages
+document.addEventListener('DOMContentLoaded', function() {
+    const msgContainer = document.getElementById('msgs');
+    msgContainer.scrollTop = msgContainer.scrollHeight;
+});
+
+// Auto-refresh messages every 30 seconds
+setInterval(function() {
+    location.reload();
+}, 30000);
+</script>
 </body>
 </html>
+<?php include 'footer.php'; ?>

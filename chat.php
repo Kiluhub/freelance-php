@@ -120,7 +120,7 @@ if ($isAdmin) {
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Chat – Task #<?= htmlspecialchars($taskId) ?></title>
+    <title>Chat – Task #<?= htmlspecialchars((string)$taskId) ?></title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #eef2f7; margin:0; padding:20px; }
         .chat-box { max-width:900px; margin:auto; background:#fff; padding:25px; border-radius:10px; box-shadow:0 0 12px rgba(0,0,0,0.1); }
@@ -163,15 +163,20 @@ if ($isAdmin) {
 <body>
 <div class="chat-box">
     <div class="chat-header">
-        <h2>Chat – Task #<?= htmlspecialchars($taskId) ?></h2>
-        <div>Task: <?= htmlspecialchars($taskInfo['question']) ?></div>
-        <div>Student: <?= htmlspecialchars($taskInfo['student_name'] ?? 'ID: ' . $taskInfo['student_id']) ?></div>
+        <h2>Chat – Task #<?= htmlspecialchars((string)$taskId) ?></h2>
+        <?php
+        $studentLabel = isset($taskInfo['student_name']) && $taskInfo['student_name'] !== null
+            ? $taskInfo['student_name']
+            : 'ID: ' . ($taskInfo['student_id'] ?? 'Unknown');
+        ?>
+        <div>Task: <?= htmlspecialchars($taskInfo['question'] ?? 'Unknown Task') ?></div>
+        <div>Student: <?= htmlspecialchars($studentLabel) ?></div>
     </div>
 
     <div class="user-info">
         <strong>Logged in as:</strong> <?= htmlspecialchars($userName) ?> (<?= $isAdmin ? 'Admin' : 'Student' ?>)<br>
         <strong>Role:</strong> <?= ucfirst($senderRole) ?><br>
-        <strong>User ID:</strong> <?= htmlspecialchars($userId) ?>
+        <strong>User ID:</strong> <?= htmlspecialchars((string)$userId) ?>
     </div>
 
     <div class="msg-container" id="msgs">
@@ -188,11 +193,11 @@ if ($isAdmin) {
                         (($senderRole === 'student' && $role === 'admin') ? ($msg['seen_by_student'] ? '✅ Seen' : '🕓 Unread') : '');
             ?>
             <div class="message <?= $role ?>">
-                <div class="sender-info"><?= htmlspecialchars($senderName) ?> (<?= ucfirst($role) ?>)
-                    <?php if ($isAdmin): ?> - ID: <?= htmlspecialchars($senderId) ?><?php endif; ?>
+                <div class="sender-info"><?= htmlspecialchars((string)$senderName) ?> (<?= ucfirst($role) ?>)
+                    <?php if ($isAdmin): ?> - ID: <?= htmlspecialchars((string)$senderId) ?><?php endif; ?>
                 </div>
                 <span class="type-tag <?= strtolower($msg['type']) ?>"><?= htmlspecialchars($msg['type'] ?? 'Other') ?></span>
-                <div><?= nl2br(htmlspecialchars($msg['message'])) ?></div>
+                <div><?= nl2br(htmlspecialchars($msg['message'] ?? '')) ?></div>
                 <?php foreach ($paths as $fp): ?>
                     <a class="file-link" href="<?= htmlspecialchars($fp) ?>" download>📎 <?= basename($fp) ?></a>
                 <?php endforeach; ?>

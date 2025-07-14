@@ -1,46 +1,50 @@
 <?php
-session_start();
 require 'connect.php';
+require 'vendor/autoload.php';
 
+use Firebase\JWT\JWT;
+
+$secretKey = 'your-very-secret-key';
 $error = "";
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $email = trim($_POST['email']);
     $password = $_POST['password'];
 
-    if ($conn) {
-        try {
-            $stmt = $conn->prepare("SELECT id, password FROM users WHERE email = :email");
-            $stmt->execute(['email' => $email]);
-            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    try {
+        $stmt = $conn->prepare("SELECT id, name, password FROM users WHERE email = :email");
+        $stmt->execute(['email' => $email]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            if ($user) {
-                if (password_verify($password, $user['password'])) {
-                    $_SESSION['student_id'] = $user['id'];
-                    header("Location: index.php");
+        if ($user && password_verify($password, $user['password'])) {
+            // JWT payload
+            $payload = [
+                'user_id' => $user['id'],
+                'role' => 'student',
+                'name' => $user['name'] ?? 'Student',
+                'exp' => time() + (60 * 60 * 24) // 24 hours
+            ];
 
-                    exit;
-                } else {
-                    $error = "Incorrect password.";
-                }
-            } else {
-                // Optional: Redirect if account doesn't exist
-                // header("Location: register.php?error=notfound");
-                $error = "Account not found. Please register below.";
-            }
-        } catch (PDOException $e) {
-            $error = "Login error: " . $e->getMessage();
+            $jwt = JWT::encode($payload, $secretKey, 'HS256');
+
+            // Set token in HTTP-only cookie
+            setcookie('token', $jwt, time() + 86400, '/', '', false, true);
+
+            header("Location: index.php");
+            exit;
+        } else {
+            $error = "Invalid email or password.";
         }
-    } else {
-        $error = "Database connection failed.";
+    } catch (PDOException $e) {
+        $error = "Login error: " . $e->getMessage();
     }
 }
 ?>
-<?php include 'header.php'; ?>
+
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Login</title>
+    <title>Student Login</title>
     <style>
         body { font-family: Arial; background: #f0f4f8; padding: 20px; }
         .form-box {
@@ -51,7 +55,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             box-shadow: 0 0 10px #ccc;
             border-radius: 8px;
         }
-        input {
+        input, button {
             width: 100%;
             padding: 12px;
             margin-top: 10px;
@@ -59,25 +63,20 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             border: 1px solid #ccc;
         }
         button {
-            margin-top: 20px;
             background: black;
             color: white;
-            padding: 12px;
-            width: 100%;
             border: none;
-            border-radius: 5px;
-        }
-        a.register-link {
-            display: block;
-            margin-top: 15px;
-            text-align: center;
-            color: #0077cc;
-            text-decoration: none;
         }
         .error {
             color: red;
-            margin-top: 15px;
             text-align: center;
+            margin-top: 15px;
+        }
+        .register-link {
+            display: block;
+            text-align: center;
+            margin-top: 15px;
+            color: #0077cc;
         }
     </style>
 </head>
@@ -98,4 +97,3 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 </div>
 </body>
 </html>
-<?php include 'footer.php'; ?>

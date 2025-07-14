@@ -2,75 +2,45 @@
 session_start();
 require 'connect.php';
 
-// Debug session info
-error_log("Session data: " . print_r($_SESSION, true));
+// Step 1: Validate session
+$userId = $_SESSION['user_id'] ?? null;
+$userRole = $_SESSION['user_role'] ?? null;
+$userName = $_SESSION['user_name'] ?? 'Unknown';
 
-// Get task ID
+if (!$userId || !$userRole || !in_array($userRole, ['student', 'admin'])) {
+    die("❌ Unauthorized access. Please log in first.");
+}
+
+$isStudent = ($userRole === 'student');
+$isAdmin = ($userRole === 'admin');
+
+// Step 2: Get task ID from URL
 $taskId = $_GET['task_id'] ?? null;
 if (!$taskId || !is_numeric($taskId)) {
-    die("❌ No task specified.");
+    die("❌ Invalid or missing task ID.");
 }
 
-// Role detection
-$isStudent = false;
-$isAdmin = false;
-$senderRole = null;
-$userId = null;
-$userName = "Unknown";
-
-// Student session
-if (isset($_SESSION['student_id']) && !empty($_SESSION['student_id'])) {
-    $isStudent = true;
-    $senderRole = 'student';
-    $userId = $_SESSION['student_id'];
-    $userName = $_SESSION['student_name'] ?? $_SESSION['username'] ?? "Student";
-}
-
-// Admin session
-if (isset($_SESSION['is_admin']) && $_SESSION['is_admin'] === true) {
-    $isAdmin = true;
-    $isStudent = false;
-    $senderRole = 'admin';
-    $userId = $_SESSION['admin_id'] ?? $_SESSION['user_id'] ?? 'admin';
-    $userName = $_SESSION['admin_name'] ?? $_SESSION['username'] ?? "Admin";
-}
-
-// Optional: Alternate admin detection
-if (isset($_SESSION['user_type']) && $_SESSION['user_type'] === 'admin') {
-    $isAdmin = true;
-    $isStudent = false;
-    $senderRole = 'admin';
-    $userId = $_SESSION['user_id'] ?? 'admin';
-    $userName = $_SESSION['username'] ?? "Admin";
-}
-
-// Must be valid role
-if (!$senderRole || (!$isStudent && !$isAdmin)) {
-    die("❌ Unauthorized. Please log in properly.");
-}
-
-// Get task info
+// Step 3: Fetch task info
 if ($isStudent) {
-    $check = $conn->prepare("SELECT id, question_text AS question, student_id, student_name 
-                             FROM questions WHERE id = :tid AND student_id = :sid");
-    $check->execute(['tid' => $taskId, 'sid' => $userId]);
-    $taskInfo = $check->fetch(PDO::FETCH_ASSOC);
-    if (!$taskInfo) die("❌ Access denied or task not found.");
+    $stmt = $conn->prepare("SELECT id, question_text AS question, student_id, student_name FROM questions WHERE id = :tid AND student_id = :sid");
+    $stmt->execute(['tid' => $taskId, 'sid' => $userId]);
 } else {
-    $check = $conn->prepare("SELECT id, question_text AS question, student_id, student_name 
-                             FROM questions WHERE id = :tid");
-    $check->execute(['tid' => $taskId]);
-    $taskInfo = $check->fetch(PDO::FETCH_ASSOC);
-    if (!$taskInfo) die("❌ Task not found.");
+    $stmt = $conn->prepare("SELECT id, question_text AS question, student_id, student_name FROM questions WHERE id = :tid");
+    $stmt->execute(['tid' => $taskId]);
+}
+$taskInfo = $stmt->fetch(PDO::FETCH_ASSOC);
+
+if (!$taskInfo) {
+    die("❌ Task not found or access denied.");
 }
 
-// Message submission
+// Step 4: Handle message post
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty(trim($_POST['message']))) {
     $msg = trim($_POST['message']);
     $type = $_POST['type'] ?? 'Other';
     $files_paths = [];
 
-    // File uploads
+    // Handle file uploads
     if (!empty($_FILES['attachment']['name'][0])) {
         $uploadDir = 'uploads/chat/';
         if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
@@ -86,28 +56,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty(trim($_POST['message']))) {
     }
 
     $files_csv = implode(',', $files_paths);
-    $stmt = $conn->prepare("INSERT INTO messages (task_id, sender_role, sender_id, sender_name, message, type, file_path) 
-                            VALUES (:tid, :role, :sender_id, :sender_name, :msg, :type, :file_path)");
-    $stmt->execute([
+    $insert = $conn->prepare("INSERT INTO messages (task_id, sender_role, sender_id, sender_name, message, type, file_path) 
+                              VALUES (:tid, :role, :sid, :sname, :msg, :type, :files)");
+    $insert->execute([
         'tid' => $taskId,
-        'role' => $senderRole,
-        'sender_id' => $userId,
-        'sender_name' => $userName,
+        'role' => $userRole,
+        'sid' => $userId,
+        'sname' => $userName,
         'msg' => $msg,
         'type' => $type,
-        'file_path' => $files_csv
+        'files' => $files_csv
     ]);
 
     header("Location: chat.php?task_id=$taskId");
     exit;
 }
 
-// Fetch messages
+// Step 5: Fetch messages
 $q = $conn->prepare("SELECT * FROM messages WHERE task_id = :tid ORDER BY sent_at ASC");
 $q->execute(['tid' => $taskId]);
 $messages = $q->fetchAll(PDO::FETCH_ASSOC);
 
-// Seen updates
+// Step 6: Mark messages as seen
 if ($isAdmin) {
     $conn->prepare("UPDATE messages SET seen_by_admin = TRUE WHERE task_id = :tid AND sender_role = 'student' AND seen_by_admin = FALSE")
          ->execute(['tid' => $taskId]);
@@ -115,6 +85,11 @@ if ($isAdmin) {
     $conn->prepare("UPDATE messages SET seen_by_student = TRUE WHERE task_id = :tid AND sender_role = 'admin' AND seen_by_student = FALSE")
          ->execute(['tid' => $taskId]);
 }
+
+// For student name display
+$studentDisplay = isset($taskInfo['student_name']) && $taskInfo['student_name'] !== null
+    ? $taskInfo['student_name']
+    : 'ID: ' . ($taskInfo['student_id'] ?? 'Unknown');
 ?>
 
 <!DOCTYPE html>
@@ -164,18 +139,12 @@ if ($isAdmin) {
 <div class="chat-box">
     <div class="chat-header">
         <h2>Chat – Task #<?= htmlspecialchars((string)$taskId) ?></h2>
-        <?php
-        $studentLabel = isset($taskInfo['student_name']) && $taskInfo['student_name'] !== null
-            ? $taskInfo['student_name']
-            : 'ID: ' . ($taskInfo['student_id'] ?? 'Unknown');
-        ?>
         <div>Task: <?= htmlspecialchars($taskInfo['question'] ?? 'Unknown Task') ?></div>
-        <div>Student: <?= htmlspecialchars($studentLabel) ?></div>
+        <div>Student: <?= htmlspecialchars($studentDisplay) ?></div>
     </div>
 
     <div class="user-info">
-        <strong>Logged in as:</strong> <?= htmlspecialchars($userName) ?> (<?= $isAdmin ? 'Admin' : 'Student' ?>)<br>
-        <strong>Role:</strong> <?= ucfirst($senderRole) ?><br>
+        <strong>Logged in as:</strong> <?= htmlspecialchars($userName) ?> (<?= ucfirst($userRole) ?>)<br>
         <strong>User ID:</strong> <?= htmlspecialchars((string)$userId) ?>
     </div>
 
@@ -189,8 +158,8 @@ if ($isAdmin) {
                 $role = $msg['sender_role'];
                 $senderName = $msg['sender_name'] ?? ucfirst($role);
                 $senderId = $msg['sender_id'] ?? 'unknown';
-                $seen = ($senderRole === 'admin' && $role === 'student') ? ($msg['seen_by_admin'] ? '✅ Seen' : '🕓 Unread') :
-                        (($senderRole === 'student' && $role === 'admin') ? ($msg['seen_by_student'] ? '✅ Seen' : '🕓 Unread') : '');
+                $seen = ($userRole === 'admin' && $role === 'student') ? ($msg['seen_by_admin'] ? '✅ Seen' : '🕓 Unread') :
+                        (($userRole === 'student' && $role === 'admin') ? ($msg['seen_by_student'] ? '✅ Seen' : '🕓 Unread') : '');
             ?>
             <div class="message <?= $role ?>">
                 <div class="sender-info"><?= htmlspecialchars((string)$senderName) ?> (<?= ucfirst($role) ?>)

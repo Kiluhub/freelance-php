@@ -1,22 +1,22 @@
 <?php
-session_start(); // Always start session at the top
-require 'connect.php'; // Ensure this connects via PDO to PostgreSQL
+session_start();
+require 'connect.php'; // make sure this uses PDO with PostgreSQL
 
-$error = ''; // Error holder
+$error = '';
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $name = trim($_POST['full_name']);
     $email = trim($_POST['email']);
     $rawPassword = $_POST['password'];
 
-    // Server-side password validation
-    if (!preg_match('/^(?=.*[A-Za-z])(?=.*\d)(?=.*[\W_]).{6,}$/', $rawPassword)) {
-        $error = "⚠️ Password must be at least 6 characters and include letters, numbers, and special characters.";
+    // Password validation: at least 8 characters, with letter, number, and special character
+    if (!preg_match('/^(?=.*[A-Za-z])(?=.*\d)(?=.*[\W_]).{8,}$/', $rawPassword)) {
+        $error = "⚠️ Password must be at least 8 characters and include letters, numbers, and special characters.";
     } else {
         $password = password_hash($rawPassword, PASSWORD_DEFAULT);
 
         try {
-            // Step 1: Check if email already exists
+            // Check for existing email
             $check = $conn->prepare("SELECT 1 FROM users WHERE email = :email LIMIT 1");
             $check->bindParam(':email', $email);
             $check->execute();
@@ -24,14 +24,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             if ($check->fetch()) {
                 $error = "⚠️ Email already exists. Try logging in.";
             } else {
-                // Step 2: Insert new user
+                // Insert new user
                 $stmt = $conn->prepare("INSERT INTO users (full_name, email, password) VALUES (:name, :email, :password)");
                 $stmt->bindParam(':name', $name);
                 $stmt->bindParam(':email', $email);
                 $stmt->bindParam(':password', $password);
                 $stmt->execute();
 
-                // ✅ Redirect to login BEFORE output
+                // Redirect to login
                 header("Location: login.php");
                 exit();
             }
@@ -41,8 +41,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     }
 }
 ?>
-<?php include 'header.php'; ?>
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -80,13 +78,16 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     </style>
 </head>
 <body>
+
+<?php include 'header.php'; ?>
+
 <div class="form-box">
     <h2>Student Registration</h2>
     <form method="post" onsubmit="return validatePassword()">
         <input type="text" name="full_name" placeholder="Full Name" required>
         <input type="email" name="email" placeholder="Email Address" required>
         <input type="password" id="password" name="password" placeholder="Create Password" required>
-        <p class="info">Password must be at least 6 characters, and include a number, letter, and symbol (e.g. !, @, #).</p>
+        <p class="info">Password must be at least 8 characters and include a number, a letter, and a special character.</p>
         <button type="submit">Register</button>
         <a href="login.php">Already have an account? Login</a>
     </form>
@@ -96,17 +97,17 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 <script>
 function validatePassword() {
     const password = document.getElementById("password").value;
-    const regex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[\W_]).{6,}$/;
+    const regex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[\W_]).{8,}$/;
 
     if (!regex.test(password)) {
-        alert("Password must be at least 6 characters long and include at least one letter, one number, and one special character.");
+        alert("Password must be at least 8 characters and include a letter, a number, and a special character.");
         return false;
     }
     return true;
 }
 </script>
 
+<?php include 'footer.php'; ?>
+
 </body>
 </html>
-
-<?php include 'footer.php'; ?>

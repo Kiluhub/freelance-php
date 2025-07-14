@@ -10,23 +10,22 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     if ($conn) {
         try {
-            $stmt = $conn->prepare("SELECT id, name, password FROM users WHERE email = :email");
+            $stmt = $conn->prepare("SELECT id, password FROM users WHERE email = :email");
             $stmt->execute(['email' => $email]);
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if ($user) {
                 if (password_verify($password, $user['password'])) {
-                    // ✅ Standardized session structure
-                    $_SESSION['user_id'] = $user['id'];
-                    $_SESSION['user_role'] = 'student';
-                    $_SESSION['user_name'] = $user['name'] ?? 'Student';
-
+                    $_SESSION['student_id'] = $user['id'];
                     header("Location: index.php");
+
                     exit;
                 } else {
                     $error = "Incorrect password.";
                 }
             } else {
+                // Optional: Redirect if account doesn't exist
+                // header("Location: register.php?error=notfound");
                 $error = "Account not found. Please register below.";
             }
         } catch (PDOException $e) {
@@ -41,7 +40,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Student Login</title>
+    <title>Login</title>
     <style>
         body { font-family: Arial; background: #f0f4f8; padding: 20px; }
         .form-box {

@@ -9,12 +9,14 @@ require 'connect.php'; // database connection
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 
-// JWT secret key used during login
-$secretKey = 'your-very-secret-key';
+// ==========================
+// Step 1: Setup JWT secret key
+// ==========================
+$secretKey = getenv("JWT_SECRET") ?: 'fallback-secret';
 
-// ----------------------------
-// Step 1: Read and Decode JWT
-// ----------------------------
+// ==========================
+// Step 2: Decode JWT Token
+// ==========================
 $jwt = $_COOKIE['token'] ?? null;
 if (!$jwt) {
     die("❌ Unauthorized. No token provided.");
@@ -33,17 +35,17 @@ $isStudent = $userRole === 'student';
 $isAdmin = $userRole === 'admin';
 $senderRole = $userRole;
 
-// ----------------------------
-// Step 2: Validate Task ID
-// ----------------------------
+// ==========================
+// Step 3: Validate Task ID
+// ==========================
 $taskId = $_GET['task_id'] ?? null;
 if (!$taskId || !is_numeric($taskId)) {
     die("❌ No task specified.");
 }
 
-// ----------------------------
-// Step 3: Fetch Task Info
-// ----------------------------
+// ==========================
+// Step 4: Fetch Task Info
+// ==========================
 if ($isStudent) {
     $check = $conn->prepare("SELECT id, question_text AS question, student_id, student_name FROM questions WHERE id = :tid AND student_id = :sid");
     $check->execute(['tid' => $taskId, 'sid' => $userId]);
@@ -57,18 +59,18 @@ if (!$taskInfo) {
     die("❌ Access denied or task not found.");
 }
 
-// ----------------------------
-// Step 4: Handle Message Submit
-// ----------------------------
+// ==========================
+// Step 5: Handle Message Submit
+// ==========================
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty(trim($_POST['message']))) {
     $msg = trim($_POST['message']);
     $type = $_POST['type'] ?? 'Other';
     $files_paths = [];
 
-    // Handle file uploads
     if (!empty($_FILES['attachment']['name'][0])) {
         $uploadDir = 'uploads/chat/';
         if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
+
         foreach ($_FILES['attachment']['tmp_name'] as $i => $tmp) {
             if (is_uploaded_file($tmp)) {
                 $name = basename($_FILES['attachment']['name'][$i]);
@@ -96,25 +98,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty(trim($_POST['message']))) {
     exit;
 }
 
-// ----------------------------
-// Step 5: Fetch Messages
-// ----------------------------
+// ==========================
+// Step 6: Fetch Messages
+// ==========================
 $q = $conn->prepare("SELECT * FROM messages WHERE task_id = :tid ORDER BY sent_at ASC");
 $q->execute(['tid' => $taskId]);
 $messages = $q->fetchAll(PDO::FETCH_ASSOC);
 
-// ----------------------------
-// Step 6: Mark Seen
-// ----------------------------
+// ==========================
+// Step 7: Mark Messages Seen
+// ==========================
 if ($isAdmin) {
     $conn->prepare("UPDATE messages SET seen_by_admin = TRUE WHERE task_id = :tid AND sender_role = 'student' AND seen_by_admin = FALSE")->execute(['tid' => $taskId]);
 } elseif ($isStudent) {
     $conn->prepare("UPDATE messages SET seen_by_student = TRUE WHERE task_id = :tid AND sender_role = 'admin' AND seen_by_student = FALSE")->execute(['tid' => $taskId]);
 }
 
-// ----------------------------
-// Step 7: Render HTML Output
-// ----------------------------
+// ==========================
+// Step 8: Render Chat Page
+// ==========================
 ?>
 
 <!DOCTYPE html>
@@ -122,17 +124,17 @@ if ($isAdmin) {
 <head>
     <title>Chat – Task #<?= htmlspecialchars((string)$taskId) ?></title>
     <style>
-        body { font-family: 'Segoe UI'; background: #eef2f7; padding: 20px; margin:0; }
-        .chat-box { max-width:900px; margin:auto; background:#fff; padding:25px; border-radius:10px; box-shadow:0 0 12px rgba(0,0,0,0.1); }
+        body { font-family: 'Segoe UI'; background: #eef2f7; padding: 20px; margin: 0; }
+        .chat-box { max-width: 900px; margin: auto; background: #fff; padding: 25px; border-radius: 10px; box-shadow: 0 0 12px rgba(0,0,0,0.1); }
         .chat-header { background: <?= $isAdmin ? '#2c3e50' : '#27ae60' ?>; color: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center; }
         .user-info, .message-form { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
-        .msg-container { display:flex; flex-direction:column; gap:12px; max-height:600px; overflow-y:auto; background: #f1f3f5; padding: 10px; border-radius: 8px; }
-        .message { padding:12px; border-radius:8px; box-shadow:0 1px 4px rgba(0,0,0,0.1); max-width:75%; }
-        .message.admin { align-self:flex-end; background:#e3f2fd; border-left: 4px solid #2196f3; }
-        .message.student { align-self:flex-start; background:#e8f5e8; border-left: 4px solid #4caf50; }
-        .file-link { display:block; font-size:13px; margin-top:5px; color:#007bff; text-decoration:none; }
-        .timestamp { font-size:11px; color:#666; margin-top:5px; }
-        button { background: <?= $isAdmin ? '#2c3e50' : '#27ae60' ?>; color:white; padding:12px; border:none; border-radius:6px; width:100%; margin-top:10px; cursor:pointer; }
+        .msg-container { display: flex; flex-direction: column; gap: 12px; max-height: 600px; overflow-y: auto; background: #f1f3f5; padding: 10px; border-radius: 8px; }
+        .message { padding: 12px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); max-width: 75%; }
+        .message.admin { align-self: flex-end; background: #e3f2fd; border-left: 4px solid #2196f3; }
+        .message.student { align-self: flex-start; background: #e8f5e8; border-left: 4px solid #4caf50; }
+        .file-link { display: block; font-size: 13px; margin-top: 5px; color: #007bff; text-decoration: none; }
+        .timestamp { font-size: 11px; color: #666; margin-top: 5px; }
+        button { background: <?= $isAdmin ? '#2c3e50' : '#27ae60' ?>; color: white; padding: 12px; border: none; border-radius: 6px; width: 100%; margin-top: 10px; cursor: pointer; }
         button:hover { background: <?= $isAdmin ? '#34495e' : '#2ecc71' ?>; }
     </style>
 </head>

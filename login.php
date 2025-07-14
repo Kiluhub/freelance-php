@@ -4,7 +4,8 @@ require 'vendor/autoload.php';
 
 use Firebase\JWT\JWT;
 
-$secretKey = 'your-very-secret-key';
+// Load from environment (safer for live hosting like Render)
+$secretKey = getenv('JWT_SECRET') ?: 'your-very-secret-key';
 $error = "";
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
@@ -17,30 +18,30 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($user && password_verify($password, $user['password'])) {
-            // JWT payload
+            // Create token payload
             $payload = [
                 'user_id' => $user['id'],
                 'role' => 'student',
                 'name' => $user['name'] ?? 'Student',
-                'exp' => time() + (60 * 60 * 24) // 24 hours
+                'exp' => time() + 86400 // expires in 1 day
             ];
 
             $jwt = JWT::encode($payload, $secretKey, 'HS256');
 
-            // Set token in HTTP-only cookie
-            setcookie('token', $jwt, time() + 86400, '/', '', false, true);
+            // Set secure HTTP-only cookie (check if site is on HTTPS)
+            $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+            setcookie('token', $jwt, time() + 86400, '/', '', $secure, true); // secure+HTTP-only
 
             header("Location: index.php");
             exit;
         } else {
-            $error = "Invalid email or password.";
+            $error = "❌ Invalid email or password.";
         }
     } catch (PDOException $e) {
         $error = "Login error: " . $e->getMessage();
     }
 }
 ?>
-
 <!DOCTYPE html>
 <html>
 <head>

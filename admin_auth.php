@@ -4,7 +4,8 @@ require 'vendor/autoload.php';
 
 use Firebase\JWT\JWT;
 
-$secretKey = 'your-very-secret-key';
+// Use environment variable on Render (fallback optional)
+$secretKey = getenv('JWT_SECRET') ?: 'your-very-secret-key';
 $message = "";
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
@@ -13,38 +14,41 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $action = $_POST['action']; // "login" or "register"
 
     if ($action === "register") {
-        // Check if admin exists
+        // Check if admin already exists
         $check = $conn->prepare("SELECT id FROM admins WHERE username = :username");
         $check->execute(['username' => $username]);
 
         if ($check->fetch()) {
-            $message = "Username already exists.";
+            $message = "❌ Username already exists.";
         } else {
             $hashed = password_hash($password, PASSWORD_DEFAULT);
             $stmt = $conn->prepare("INSERT INTO admins (username, password) VALUES (:username, :password)");
             $stmt->execute(['username' => $username, 'password' => $hashed]);
             $message = "✅ Registration successful. You may now log in.";
         }
+
     } elseif ($action === "login") {
+        // Validate login
         $stmt = $conn->prepare("SELECT * FROM admins WHERE username = :username");
         $stmt->execute(['username' => $username]);
         $admin = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($admin && password_verify($password, $admin['password'])) {
-            // ✅ Prepare token payload
+            // Prepare JWT payload
             $payload = [
                 'user_id' => $admin['id'],
                 'role' => 'admin',
                 'name' => $admin['username'],
-                'exp' => time() + (60 * 60 * 24) // expires in 1 day
+                'exp' => time() + 86400 // 1 day expiry
             ];
 
             $jwt = JWT::encode($payload, $secretKey, 'HS256');
 
-            // ✅ Store token in cookie
-            setcookie('token', $jwt, time() + 86400, '/', '', false, true); // 1 day, HTTP-only
+            // Set JWT cookie securely
+            $secure = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on';
+            setcookie('token', $jwt, time() + 86400, '/', '', $secure, true); // HTTP-only, secure if HTTPS
 
-            // ✅ Redirect to dashboard
+            // Redirect to admin dashboard
             header("Location: admin_dashboard.php");
             exit;
         } else {

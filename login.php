@@ -95,6 +95,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     <?php endif; ?>
 
     <a class="register-link" href="register.php">Don't have an account? Click here to register.</a>
+    <a class="register-link" href="forgot_password.php">Forgot Password?</a> <!-- 🔑 Password reset link -->
+
 </div>
 </body>
 </html>

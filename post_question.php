@@ -2,6 +2,7 @@
 session_start();
 require 'connect.php';
 
+// ✅ Check if user is logged in
 if (!isset($_SESSION['student_id'])) {
     header("Location: login.php");
     exit();
@@ -9,16 +10,26 @@ if (!isset($_SESSION['student_id'])) {
 
 $student_id = $_SESSION['student_id'];
 $student_name = $_SESSION['student_name'] ?? 'Anonymous';
-$title = trim($_POST['title']);
-$pages = (int)$_POST['pages'];
-$price = (float)$_POST['price'];
-$description = trim($_POST['description']);
-$other_info = trim($_POST['other_info']);
+
+// ✅ Safely retrieve form inputs
+$title = trim($_POST['title'] ?? '');
+$pages = (int)($_POST['pages'] ?? 0);
+$price = (float)($_POST['price'] ?? 0);
+$description = trim($_POST['description'] ?? '');
+$other_info = trim($_POST['other_info'] ?? '');
 $file_path = null;
 
+// ✅ Check required fields before inserting
+if ($title === '' || $pages <= 0 || $price <= 0 || $description === '') {
+    die("❌ Required fields missing. Please fill in all required inputs.");
+}
+
+// ✅ Handle file upload
 if (!empty($_FILES['file']['name'])) {
     $uploadDir = 'uploads/questions/';
-    if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
+    if (!is_dir($uploadDir)) {
+        mkdir($uploadDir, 0777, true);
+    }
 
     $fileName = uniqid() . '_' . basename($_FILES['file']['name']);
     $targetPath = $uploadDir . $fileName;
@@ -29,7 +40,12 @@ if (!empty($_FILES['file']['name'])) {
 }
 
 try {
-    $stmt = $conn->prepare("INSERT INTO questions (student_id, student_name, question_text, pages, price, description, other_info, file_path, created_at) VALUES (:sid, :sname, :title, :pages, :price, :desc, :info, :file, NOW())");
+    // ✅ Insert into database
+    $stmt = $conn->prepare("INSERT INTO questions (
+        student_id, student_name, question_text, pages, price, description, other_info, file_path, created_at
+    ) VALUES (
+        :sid, :sname, :title, :pages, :price, :desc, :info, :file, NOW()
+    )");
 
     $stmt->execute([
         'sid'   => $student_id,
@@ -44,7 +60,7 @@ try {
 
     $questionId = $conn->lastInsertId();
 
-    // ✅ Redirect to student_chat.php instead of old chat.php
+    // ✅ Redirect to new student_chat
     header("Location: student_chat.php?task_id=$questionId");
     exit();
 

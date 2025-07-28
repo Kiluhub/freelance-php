@@ -18,7 +18,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $_SESSION['student_name'] = $user['name'] ?? 'Student';
 
             // ✅ Redirect to the form page (not handler)
-            header("Location: post_question_form.php");
+            header("Location: post_question.php");
             exit;
         } else {
             $error = "❌ Invalid email or password.";

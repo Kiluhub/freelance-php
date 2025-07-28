@@ -1,11 +1,7 @@
 <?php
 require 'connect.php';
-require 'vendor/autoload.php';
 
-use Firebase\JWT\JWT;
-
-// Load from environment (safer for live hosting like Render)
-$secretKey = getenv('JWT_SECRET') ?: 'your-very-secret-key';
+session_start();
 $error = "";
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
@@ -18,21 +14,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($user && password_verify($password, $user['password'])) {
-            // Create token payload
-            $payload = [
-                'user_id' => $user['id'],
-                'role' => 'student',
-                'name' => $user['name'] ?? 'Student',
-                'exp' => time() + 86400 // expires in 1 day
-            ];
+            // Set PHP session
+            $_SESSION['student_id'] = $user['id'];
+            $_SESSION['student_name'] = $user['name'] ?? 'Student';
 
-            $jwt = JWT::encode($payload, $secretKey, 'HS256');
-
-            // Set secure HTTP-only cookie (check if site is on HTTPS)
-            $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
-            setcookie('token', $jwt, time() + 86400, '/', '', $secure, true); // secure+HTTP-only
-
-            // ✅ Redirect to post_question.php after login
+            // Redirect to post question page
             header("Location: post_question.php");
             exit;
         } else {
@@ -95,7 +81,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         <p class="error"><?= htmlspecialchars($error) ?></p>
     <?php endif; ?>
 
-    <!-- 🔗 Register & Forgot Password Links -->
     <a class="register-link" href="register.php">Don't have an account? Click here to register.</a>
     <a class="register-link" href="forgot_password.php">Forgot Password?</a>
 </div>

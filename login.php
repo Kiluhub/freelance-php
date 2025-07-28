@@ -32,7 +32,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
             setcookie('token', $jwt, time() + 86400, '/', '', $secure, true); // secure+HTTP-only
 
-            header("Location: index.php");
+            // ✅ Redirect to post_question.php after login
+            header("Location: post_question.php");
             exit;
         } else {
             $error = "❌ Invalid email or password.";
@@ -94,9 +95,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         <p class="error"><?= htmlspecialchars($error) ?></p>
     <?php endif; ?>
 
+    <!-- 🔗 Register & Forgot Password Links -->
     <a class="register-link" href="register.php">Don't have an account? Click here to register.</a>
-    <a class="register-link" href="forgot_password.php">Forgot Password?</a> <!-- 🔑 Password reset link -->
-
+    <a class="register-link" href="forgot_password.php">Forgot Password?</a>
 </div>
 </body>
 </html>

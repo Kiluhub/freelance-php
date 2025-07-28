@@ -1,11 +1,10 @@
 <?php
 require 'connect.php';
 require 'vendor/autoload.php';
-
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
-$message = '';
+$message = "";
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $email = trim($_POST['email']);
@@ -16,11 +15,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if ($user) {
-        // Generate reset token
         $token = bin2hex(random_bytes(32));
-        $expires = date("Y-m-d H:i:s", time() + 3600); // 1 hour expiry
+        $expires = date("Y-m-d H:i:s", time() + 3600); // 1 hour from now
 
-        // Save token
+        // Store token
         $stmt = $conn->prepare("INSERT INTO password_resets (email, token, expires_at) VALUES (:email, :token, :expires)");
         $stmt->execute([
             'email' => $email,
@@ -28,30 +26,30 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             'expires' => $expires
         ]);
 
-        // Send email with reset link
+        // Send email
         $mail = new PHPMailer(true);
         try {
             $mail->isSMTP();
-            $mail->Host = 'smtp.gmail.com';  // Gmail SMTP
+            $mail->Host = 'smtp.gmail.com';
             $mail->SMTPAuth = true;
             $mail->Username = 'yourgmail@gmail.com';
             $mail->Password = 'your_gmail_app_password';
             $mail->SMTPSecure = 'tls';
             $mail->Port = 587;
 
-            $mail->setFrom('yourgmail@gmail.com', 'Your Site');
+            $mail->setFrom('yourgmail@gmail.com', 'SmartLearn');
             $mail->addAddress($email);
-            $mail->Subject = 'Password Reset Link';
-            $resetLink = "http://yourdomain.com/reset_password.php?token=$token";
-            $mail->Body = "Click the link to reset your password: $resetLink";
+            $mail->Subject = 'Password Reset';
+            $link = "http://yourdomain.com/reset_password.php?token=$token";
+            $mail->Body = "Click the link below to reset your password:\n$link";
 
             $mail->send();
             $message = "✅ Check your email for a reset link.";
         } catch (Exception $e) {
-            $message = "❌ Could not send email. Try again.";
+            $message = "❌ Failed to send email. Try again.";
         }
     } else {
-        $message = "❌ Email not found.";
+        $message = "❌ That email is not registered.";
     }
 }
 ?>
@@ -59,11 +57,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 <html>
 <head><title>Forgot Password</title></head>
 <body>
+<div class="form-box">
+    <h2>Reset Your Password</h2>
     <form method="post">
-        <h2>Forgot Password</h2>
-        <input type="email" name="email" placeholder="Your registered email" required>
+        <input type="email" name="email" placeholder="Enter your registered email" required>
         <button type="submit">Send Reset Link</button>
-        <p><?= htmlspecialchars($message) ?></p>
     </form>
+    <p><?= htmlspecialchars($message) ?></p>
+    <a class="register-link" href="login.php">Back to Login</a>
+</div>
 </body>
 </html>

@@ -1,6 +1,5 @@
 <?php
 require 'connect.php';
-
 session_start();
 $error = "";
 
@@ -14,12 +13,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($user && password_verify($password, $user['password'])) {
-            // Set PHP session
+            // ✅ Set session
             $_SESSION['student_id'] = $user['id'];
             $_SESSION['student_name'] = $user['name'] ?? 'Student';
 
-            // Redirect to post question page
-            header("Location: post_question.php");
+            // ✅ Redirect to the form page (not handler)
+            header("Location: post_question_form.php");
             exit;
         } else {
             $error = "❌ Invalid email or password.";
@@ -29,6 +28,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     }
 }
 ?>
+
 <!DOCTYPE html>
 <html>
 <head>

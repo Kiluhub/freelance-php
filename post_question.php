@@ -1,63 +1,57 @@
 <?php
 session_start();
-require 'connect.php';
-
 if (!isset($_SESSION['student_id'])) {
     header("Location: login.php");
     exit();
 }
+?>
 
-// ✅ Only allow POST request
-if ($_SERVER["REQUEST_METHOD"] !== "POST") {
-    die("🚫 Access denied. Please submit the form properly.");
-}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Post a Question - SmartLearn</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f4f8;
+        }
+        .container {
+            max-width: 700px;
+            margin: 60px auto;
+            background: #ffffff;
+            padding: 30px;
+            box-shadow: 0 0 10px #ccc;
+            border-radius: 10px;
+        }
+        input, textarea, button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+        }
+        button {
+            background-color: red;
+            color: white;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
 
-// ✅ Now safely access posted values
-$title = trim($_POST['title'] ?? '');
-$pages = (int)($_POST['pages'] ?? 0);
-$price = (float)($_POST['price'] ?? 0);
-$description = trim($_POST['description'] ?? '');
-$other_info = trim($_POST['other_info'] ?? '');
-$file_path = null;
+<div class="container">
+    <h2>Post a Question</h2>
+    <form action="post_question.php" method="post" enctype="multipart/form-data">
+        <input type="text" name="title" placeholder="Question Title" required>
+        <input type="number" name="pages" placeholder="Number of Pages" required min="1">
+        <input type="number" name="price" placeholder="Price (USD)" required min="1" step="0.01">
+        <textarea name="description" placeholder="Description" required></textarea>
+        <textarea name="other_info" placeholder="Other Info (Optional)"></textarea>
+        <input type="file" name="file">
+        <button type="submit">Submit Question</button>
+    </form>
+</div>
 
-// Validate
-if (empty($title) || $pages <= 0 || $price <= 0 || empty($description)) {
-    die("❌ Required fields missing. Please fill in all required inputs.");
-}
-
-// Upload (optional)
-if (!empty($_FILES['file']['name'])) {
-    $uploadDir = 'uploads/questions/';
-    if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
-
-    $fileName = uniqid() . '_' . basename($_FILES['file']['name']);
-    $targetPath = $uploadDir . $fileName;
-
-    if (move_uploaded_file($_FILES['file']['tmp_name'], $targetPath)) {
-        $file_path = $targetPath;
-    }
-}
-
-// Save to DB
-try {
-    $stmt = $conn->prepare("INSERT INTO questions (student_id, student_name, question_text, pages, price, description, other_info, file_path, created_at)
-        VALUES (:sid, :sname, :title, :pages, :price, :desc, :info, :file, NOW())");
-
-    $stmt->execute([
-        'sid'   => $_SESSION['student_id'],
-        'sname' => $_SESSION['student_name'] ?? 'Anonymous',
-        'title' => $title,
-        'pages' => $pages,
-        'price' => $price,
-        'desc'  => $description,
-        'info'  => $other_info,
-        'file'  => $file_path
-    ]);
-
-    $questionId = $conn->lastInsertId();
-
-    header("Location: student_chat.php?task_id=$questionId");
-    exit();
-} catch (PDOException $e) {
-    die("❌ Failed to post question: " . $e->getMessage());
-}
+</body>
+</html>

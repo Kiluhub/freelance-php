@@ -159,7 +159,8 @@ $result = $conn->query($sql);
                         <button class="view-btn" onclick="openModal(<?= $index ?>)">View</button>
                     </td>
                     <td>
-                        <a class="chat-btn" href="chat.php?task_id=<?= $row['id'] ?>">Chat</a>
+                        <!-- ✅ Updated link here -->
+                        <a class="chat-btn" href="admin_chat.php?task_id=<?= $row['id'] ?>">Chat</a>
                     </td>
                 </tr>
 

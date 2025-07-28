@@ -3,6 +3,7 @@ require 'connect.php';
 require 'vendor/autoload.php';
 
 use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
 
 $secretKey = getenv('JWT_SECRET') ?: 'your-very-secret-key';
 $message = "";
@@ -10,7 +11,7 @@ $message = "";
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $username = trim($_POST['username']);
     $password = trim($_POST['password']);
-    $action = $_POST['action']; // login or register
+    $action = $_POST['action'];
 
     if ($action === "register") {
         $check = $conn->prepare("SELECT id FROM admins WHERE username = :username");
@@ -31,15 +32,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         if ($admin && password_verify($password, $admin['password'])) {
             $payload = [
-                'user_id' => $admin['id'],
+                'id' => $admin['id'],
+                'username' => $admin['username'],
                 'role' => 'admin',
-                'name' => $admin['username'],
                 'exp' => time() + 86400
             ];
-
             $jwt = JWT::encode($payload, $secretKey, 'HS256');
-            setcookie('admin_token', $jwt, time() + 86400, '/', '', false, true);
-
+            $secure = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on';
+            setcookie('admin_token', $jwt, time() + 86400, "/", "", $secure, true);
             header("Location: admin_dashboard.php");
             exit;
         } else {
@@ -52,14 +52,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Admin Access - SmartLearn</title>
+    <title>Admin Login / Register</title>
     <style>
-        body { font-family: Arial; background: #f4f4f4; padding: 40px; }
-        .container { max-width: 400px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px #ccc; }
-        h2 { text-align: center; }
-        input, select, button { width: 100%; margin-top: 10px; padding: 10px; border-radius: 6px; }
-        button { background: #333; color: white; }
-        .message { color: red; text-align: center; margin-top: 10px; }
+        body { font-family: Arial; background: #f4f4f4; padding: 50px; }
+        .container { max-width: 400px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px #ccc; }
+        input, select, button { width: 100%; margin-top: 10px; padding: 10px; border-radius: 4px; border: 1px solid #ccc; }
+        button { background: black; color: white; }
+        .message { color: red; margin-top: 10px; text-align: center; }
     </style>
 </head>
 <body>
@@ -72,11 +71,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             <option value="login">Login</option>
             <option value="register">Register</option>
         </select>
-        <button type="submit">Submit</button>
+        <button type="submit">Continue</button>
     </form>
-    <?php if (!empty($message)): ?>
-        <div class="message"><?= htmlspecialchars($message) ?></div>
-    <?php endif; ?>
+    <?php if ($message): ?><div class="message"><?= htmlspecialchars($message) ?></div><?php endif; ?>
 </div>
 </body>
 </html>

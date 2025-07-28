@@ -187,7 +187,7 @@ $tasks = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <td>
                         <button class="view-btn" onclick="openModal(<?= $index ?>)">View</button>
                     </td>
-                    <td><a class="chat-link" href="chat.php?task_id=<?= $task['id'] ?>">Chat</a></td>
+                    <td><a class="chat-link" href="student_chat.php?task_id=<?= $task['id'] ?>">Chat</a></td>
                 </tr>
 
                 <!-- Modal Content -->

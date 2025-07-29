@@ -10,8 +10,8 @@ include 'header.php';
 
 $student_id = $_SESSION['student_id'];
 
-// Fetch tutors from DB (always up-to-date)
-$tutorsStmt = $conn->query("SELECT id, full_name, subject, bio FROM tutors ORDER BY id DESC");
+// Fetch tutors from DB
+$tutorsStmt = $conn->query("SELECT id, full_name, subject FROM tutors ORDER BY id DESC");
 $tutors = $tutorsStmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Check if student has previous questions
@@ -47,7 +47,6 @@ $hasTasks = $checkTasksStmt->fetchColumn() > 0;
         }
 
         .task-link a {
-            display: inline-block;
             background-color: #28a745;
             color: white;
             padding: 10px 16px;
@@ -73,6 +72,7 @@ $hasTasks = $checkTasksStmt->fetchColumn() > 0;
             border-left: 5px solid #2196f3;
             margin-bottom: 25px;
             border-radius: 6px;
+            font-weight: bold;
         }
 
         label {
@@ -85,7 +85,8 @@ $hasTasks = $checkTasksStmt->fetchColumn() > 0;
         input[type="text"],
         input[type="number"],
         textarea,
-        input[type="file"] {
+        input[type="file"],
+        select {
             width: 100%;
             padding: 12px;
             margin-top: 8px;
@@ -97,49 +98,6 @@ $hasTasks = $checkTasksStmt->fetchColumn() > 0;
         textarea {
             height: 100px;
             resize: vertical;
-        }
-
-        .tutor-box {
-            background: #fff3cd;
-            padding: 20px;
-            border-left: 6px solid #ffc107;
-            border-radius: 8px;
-            margin-bottom: 25px;
-        }
-
-        .tutor-box h3 {
-            margin-top: 0;
-            color: #856404;
-        }
-
-        .tutor-list {
-            max-height: 220px;
-            overflow-y: auto;
-            margin-top: 10px;
-        }
-
-        .tutor-item {
-            margin-bottom: 12px;
-        }
-
-        .tutor-item a {
-            color: #007bff;
-            font-size: 13px;
-            margin-left: 10px;
-        }
-
-        .view-all {
-            margin-top: 10px;
-            font-size: 14px;
-        }
-
-        .view-all a {
-            color: #0056b3;
-            text-decoration: none;
-        }
-
-        .view-all a:hover {
-            text-decoration: underline;
         }
 
         button {
@@ -169,6 +127,20 @@ $hasTasks = $checkTasksStmt->fetchColumn() > 0;
         .back-link:hover {
             text-decoration: underline;
         }
+
+        .view-all {
+            margin-top: 8px;
+            font-size: 14px;
+        }
+
+        .view-all a {
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        .view-all a:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -177,33 +149,30 @@ $hasTasks = $checkTasksStmt->fetchColumn() > 0;
 
     <?php if ($hasTasks): ?>
         <div class="task-link">
-            <a href="my_tasks.php">📂 See Your Previous Tasks</a>
+            <a href="submit_question.php">📂 See Your Previous Tasks</a>
         </div>
     <?php endif; ?>
 
     <h2>Post Your Assignment or Question</h2>
 
     <div class="disclaimer">
-        💬 Please note: Your payment is held safely until you're satisfied with the solution. If not, you can request a refund, subject to support approval.
+         Please note: Your payment is held safely until you're satisfied with the solution. If not, you can request a refund, subject to support approval.
     </div>
 
     <form action="submit_question.php" method="post" enctype="multipart/form-data">
 
         <!-- Tutor Selection -->
-        <div class="tutor-box">
-            <h3>👩‍🏫 Choose a Tutor</h3>
-            <div class="tutor-list">
-                <?php foreach ($tutors as $tutor): ?>
-                    <div class="tutor-item">
-                        <input type="radio" name="tutor_id" value="<?= $tutor['id'] ?>" required>
-                        <strong><?= htmlspecialchars($tutor['full_name']) ?></strong> — <?= htmlspecialchars($tutor['subject']) ?>
-                        <a href="tutors.php#tutor-<?= $tutor['id'] ?>" target="_blank">Read More</a>
-                    </div>
-                <?php endforeach; ?>
-            </div>
-            <div class="view-all">
-                Or <a href="tutors.php" target="_blank">View All Tutors</a>
-            </div>
+        <label for="tutor_id">Choose a Tutor:</label>
+        <select name="tutor_id" id="tutor_id" required>
+            <option value="">-- Select a Tutor --</option>
+            <?php foreach ($tutors as $tutor): ?>
+                <option value="<?= $tutor['id'] ?>">
+                    <?= htmlspecialchars($tutor['full_name']) ?> — <?= htmlspecialchars($tutor['subject']) ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
+        <div class="view-all">
+            Or <a href="tutors.php" target="_blank">View All Tutors</a>
         </div>
 
         <!-- Question Info -->

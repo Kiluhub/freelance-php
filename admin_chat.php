@@ -124,6 +124,23 @@ $messages = $q->fetchAll(PDO::FETCH_ASSOC);
             resize: vertical;
             padding: 10px;
         }
+        .file-preview {
+            margin-top: 10px;
+        }
+        .file-preview div {
+            padding: 5px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .file-preview span {
+            margin-right: 10px;
+        }
+        .remove-file {
+            color: red;
+            cursor: pointer;
+            font-weight: bold;
+        }
         form input[type="file"] {
             margin-top: 8px;
         }
@@ -167,10 +184,38 @@ $messages = $q->fetchAll(PDO::FETCH_ASSOC);
 
     <form method="POST" enctype="multipart/form-data">
         <textarea name="message" rows="3" placeholder="Type your message..." required></textarea><br>
-        <input type="file" name="attachment[]" multiple><br>
+        <input type="file" name="attachment[]" multiple id="fileInput"><br>
+        <div class="file-preview" id="filePreview"></div>
         <input type="hidden" name="type" value="General">
         <button type="submit">Send</button>
     </form>
 </div>
+<script>
+    const fileInput = document.getElementById('fileInput');
+    const filePreview = document.getElementById('filePreview');
+
+    fileInput.addEventListener('change', () => {
+        filePreview.innerHTML = '';
+        Array.from(fileInput.files).forEach((file, index) => {
+            const fileRow = document.createElement('div');
+            const nameSpan = document.createElement('span');
+            nameSpan.textContent = file.name;
+            const removeBtn = document.createElement('span');
+            removeBtn.textContent = '✖';
+            removeBtn.className = 'remove-file';
+            removeBtn.onclick = () => {
+                const dataTransfer = new DataTransfer();
+                Array.from(fileInput.files).forEach((f, i) => {
+                    if (i !== index) dataTransfer.items.add(f);
+                });
+                fileInput.files = dataTransfer.files;
+                fileInput.dispatchEvent(new Event('change'));
+            };
+            fileRow.appendChild(nameSpan);
+            fileRow.appendChild(removeBtn);
+            filePreview.appendChild(fileRow);
+        });
+    });
+</script>
 </body>
 </html>

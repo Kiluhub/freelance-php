@@ -56,10 +56,22 @@
 <div class="contact-section">
     <h2>Contact SmartLearn</h2>
 
-    <div class="contact-item"><i>📧</i> Email: <a href="mailto:smartlearn.help@gmail.com">smartlearn.help@gmail.com</a></div>
-    <div class="contact-item"><i>📞</i> Phone: +254 712 345 678</div>
-    <div class="contact-item"><i>🌐</i> Website: <a href="https://smartlearn.com">smartlearn.com</a></div>
-    <div class="contact-item"><i>⏰</i> Support Hours</div>
+        <div class="contact-item">
+        <i>📧</i> Email: <a href="mailto:smartlearn.help@gmail.com">smartlearn.help@gmail.com</a>
+        </div>
+
+        <div class="contact-item">
+            <i>💬</i> Whatsapp: <a href="https://wa.me/447737374976" target="_blank">+44 7737 374976</a>
+        </div>
+
+        <div class="contact-item">
+            <i>🌐</i> Website: <a href="https://smartlearn.com">smartlearn.com</a>
+        </div>
+
+        <div class="contact-item">
+            <i>⏰</i> Support Hours
+        </div>
+
 </div>
 
 </body>

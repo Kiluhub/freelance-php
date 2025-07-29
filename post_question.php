@@ -7,6 +7,10 @@ if (!isset($_SESSION['student_id'])) {
 
 require 'connect.php';
 include 'header.php';
+
+// Fetch tutors from DB
+$tutorsStmt = $conn->query("SELECT id, full_name, subject, bio, profile_pic FROM tutors");
+$tutors = $tutorsStmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!DOCTYPE html>
@@ -22,7 +26,7 @@ include 'header.php';
         }
 
         .container {
-            max-width: 700px;
+            max-width: 800px;
             margin: 60px auto;
             background: #ffffff;
             padding: 30px 40px;
@@ -87,12 +91,32 @@ include 'header.php';
         .back-link:hover {
             text-decoration: underline;
         }
+
+        .tutor-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 6px;
+            background: #f9f9f9;
+        }
+
+        .tutor-item {
+            margin-bottom: 15px;
+        }
+
+        .tutor-item a {
+            color: #0066cc;
+            font-size: 14px;
+            margin-left: 5px;
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
     <h2>Post Your Assignment or Question</h2>
+    <p>Please note that your money is held until you're satisfied with the solution. If not, you can request a refund subject to support approval.</p>
 
     <form action="submit_question.php" method="post" enctype="multipart/form-data">
         <label for="title">Question Title:</label>
@@ -113,10 +137,21 @@ include 'header.php';
         <label for="file">Upload File (optional):</label>
         <input type="file" name="file" id="file">
 
+        <label for="tutor">Choose a Tutor:</label>
+        <div class="tutor-list">
+            <?php foreach ($tutors as $tutor): ?>
+                <div class="tutor-item">
+                    <input type="radio" name="tutor_id" value="<?= $tutor['id'] ?>" required>
+                    <strong><?= htmlspecialchars($tutor['full_name']) ?></strong> — <?= htmlspecialchars($tutor['subject']) ?>
+                    <a href="tutors.php#tutor-<?= $tutor['id'] ?>" target="_blank">Read More</a>
+                </div>
+            <?php endforeach; ?>
+        </div>
+
         <button type="submit">Submit Question</button>
     </form>
 
-    <a class="back-link" href="index.php">← Back to Home</a>
+    <a class="back-link" href="index.php">&larr; Back to Home</a>
 </div>
 
 </body>

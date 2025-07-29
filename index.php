@@ -140,7 +140,8 @@ include 'header.php';
 
 <section class="hero">
     <div class="cta">
-        <h1>Join Thousands of Students Getting Help Today!</h1>
+        <h1>Join Thousands of Students and Professionals Getting Help Today!</h1>
+        <h2>Experience first—pay only when you're satisfied. Your trust matters to us.<h2>
         <a href="post_question.php" class="post-btn">➕ Post Your Question</a>
         <?php if ($hasTasks): ?>
             <a href="submit_question.php" class="tasks-btn">📁 View My Tasks</a>

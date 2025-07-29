@@ -23,8 +23,8 @@ try {
     exit;
 }
 
-// Fetch submitted tasks
-$sql = "SELECT q.*, u.full_name 
+// Fetch submitted tasks with student ID and name
+$sql = "SELECT q.*, u.id AS student_id, u.full_name 
         FROM questions q
         JOIN users u ON q.student_id = u.id
         ORDER BY q.created_at DESC";
@@ -127,7 +127,8 @@ $result = $conn->query($sql);
 
 <table>
     <tr>
-        <th>Student</th>
+        <th>Student ID</th>
+        <th>Student Name</th>
         <th>Title</th>
         <th>Pages</th>
         <th>Price ($)</th>
@@ -140,6 +141,7 @@ $result = $conn->query($sql);
     <?php $i = 0; ?>
     <?php while ($row = $result->fetch(PDO::FETCH_ASSOC)): ?>
         <tr>
+            <td><?= htmlspecialchars($row['student_id']) ?></td>
             <td><?= htmlspecialchars($row['full_name']) ?></td>
             <td><?= htmlspecialchars($row['title']) ?></td>
             <td><?= (int)$row['pages'] ?></td>

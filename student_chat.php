@@ -48,10 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty(trim($_POST['message']))) {
     }
 
     $files_csv = implode(',', $files_paths);
-    $stmt = $conn->prepare("
-        INSERT INTO messages (task_id, sender_role, sender_id, sender_name, message, type, file_path)
-        VALUES (:tid, 'student', :sid, :sname, :msg, 'text', :files)
-    ");
+    $stmt = $conn->prepare("INSERT INTO messages (task_id, sender_role, sender_id, sender_name, message, type, file_path) VALUES (:tid, 'student', :sid, :sname, :msg, 'text', :files)");
     $stmt->execute([
         'tid' => $taskId,
         'sid' => $studentId,
@@ -96,7 +93,29 @@ ob_end_flush(); // Send output
         .admin .bubble { background: #e2e3e5; }
         form { margin-top: 20px; }
         textarea { width: 100%; padding: 10px; border-radius: 6px; }
-        input[type="file"] { margin-top: 8px; }
+        .attachments-preview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .attachment-item {
+            background: #f1f1f1;
+            padding: 5px 10px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+        }
+        .attachment-item span {
+            margin-right: 8px;
+        }
+        .attachment-item button {
+            background: none;
+            border: none;
+            color: red;
+            cursor: pointer;
+            font-size: 16px;
+        }
         button {
             margin-top: 10px;
             padding: 10px 15px;
@@ -140,9 +159,41 @@ ob_end_flush(); // Send output
 
     <form method="POST" enctype="multipart/form-data">
         <textarea name="message" placeholder="Type your message here..." required></textarea>
-        <input type="file" name="attachment[]" multiple>
+        <input type="file" name="attachment[]" id="fileInput" multiple onchange="handleFiles(this.files)">
+        <div class="attachments-preview" id="preview"></div>
         <button type="submit">Send</button>
     </form>
 </div>
+
+<script>
+    let selectedFiles = [];
+
+    function handleFiles(files) {
+        for (const file of files) {
+            selectedFiles.push(file);
+        }
+        renderPreview();
+    }
+
+    function removeFile(index) {
+        selectedFiles.splice(index, 1);
+        renderPreview();
+    }
+
+    function renderPreview() {
+        const preview = document.getElementById('preview');
+        preview.innerHTML = '';
+        selectedFiles.forEach((file, index) => {
+            const item = document.createElement('div');
+            item.className = 'attachment-item';
+            item.innerHTML = `<span>${file.name}</span><button type="button" onclick="removeFile(${index})">&times;</button>`;
+            preview.appendChild(item);
+        });
+
+        const dataTransfer = new DataTransfer();
+        selectedFiles.forEach(file => dataTransfer.items.add(file));
+        document.getElementById('fileInput').files = dataTransfer.files;
+    }
+</script>
 </body>
 </html>

@@ -1,5 +1,5 @@
 <?php
-ob_start(); // Start output buffering to prevent headers issues
+ob_start(); // Start output buffering
 require 'connect.php';
 require 'vendor/autoload.php';
 
@@ -73,7 +73,7 @@ $q = $conn->prepare("SELECT * FROM messages WHERE task_id = :tid ORDER BY sent_a
 $q->execute(['tid' => $taskId]);
 $messages = $q->fetchAll(PDO::FETCH_ASSOC);
 
-ob_end_flush(); // Send output after headers
+ob_end_flush(); // Send output
 ?>
 
 <!DOCTYPE html>
@@ -106,6 +106,15 @@ ob_end_flush(); // Send output after headers
             border-radius: 6px;
             cursor: pointer;
         }
+        .attachments a {
+            display: block;
+            color: #007bff;
+            text-decoration: none;
+            font-size: 0.9em;
+        }
+        .attachments a:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -117,9 +126,12 @@ ob_end_flush(); // Send output after headers
             <div class="meta"><?= htmlspecialchars($msg['sender_name']) ?> — <?= $msg['sent_at'] ?></div>
             <div class="bubble"><?= nl2br(htmlspecialchars($msg['message'])) ?></div>
             <?php if (!empty($msg['file_path'])): ?>
-                <div class="meta">Attachments:
+                <div class="attachments">
+                    <strong>Attachments:</strong>
                     <?php foreach (explode(',', $msg['file_path']) as $file): ?>
-                        <a href="<?= $file ?>" target="_blank">📎</a>
+                        <a href="<?= htmlspecialchars($file) ?>" target="_blank" download>
+                            📎 <?= basename($file) ?>
+                        </a>
                     <?php endforeach; ?>
                 </div>
             <?php endif; ?>

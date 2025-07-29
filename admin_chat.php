@@ -1,5 +1,4 @@
 <?php
-// ✅ admin_chat.php (Full working version)
 require 'connect.php';
 require 'vendor/autoload.php';
 
@@ -8,7 +7,6 @@ use Firebase\JWT\Key;
 
 $secretKey = getenv('JWT_SECRET') ?: 'your-very-secret-key';
 
-// Authenticate using JWT only
 if (!isset($_COOKIE['admin_token'])) {
     header("Location: admin_auth.php");
     exit;
@@ -31,7 +29,6 @@ if (!$taskId || !is_numeric($taskId)) {
     die("❌ Invalid or missing task ID.");
 }
 
-// Validate task exists
 $check = $conn->prepare("SELECT id, title, student_id FROM questions WHERE id = :tid");
 $check->execute(['tid' => $taskId]);
 $taskInfo = $check->fetch(PDO::FETCH_ASSOC);
@@ -75,15 +72,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty(trim($_POST['message']))) {
     exit;
 }
 
-// Mark all unseen student messages as seen
 $conn->prepare("UPDATE messages SET seen_by_admin = TRUE WHERE task_id = :tid AND sender_role = 'student' AND seen_by_admin = FALSE")
     ->execute(['tid' => $taskId]);
 
-// Fetch messages
 $q = $conn->prepare("SELECT * FROM messages WHERE task_id = :tid ORDER BY sent_at ASC");
 $q->execute(['tid' => $taskId]);
 $messages = $q->fetchAll(PDO::FETCH_ASSOC);
 ?>
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -91,12 +87,62 @@ $messages = $q->fetchAll(PDO::FETCH_ASSOC);
     <style>
         body { font-family: Arial, sans-serif; background: #eef2f5; padding: 20px; }
         .chat-container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px #ccc; }
-        .chat-box { max-height: 400px; overflow-y: auto; margin-bottom: 20px; padding-right: 10px; }
-        .message { margin-bottom: 15px; }
-        .student { color: blue; }
-        .admin { color: green; }
-        .timestamp { font-size: 0.8em; color: gray; }
-        .attachments a { display: block; font-size: 0.9em; }
+        .chat-box { max-height: 450px; overflow-y: auto; margin-bottom: 20px; padding: 10px; background: #f9f9f9; border-radius: 8px; }
+        .message {
+            margin-bottom: 18px;
+            max-width: 75%;
+            padding: 10px;
+            border-radius: 10px;
+            clear: both;
+        }
+        .student {
+            background-color: #dbeafe;
+            float: left;
+        }
+        .admin {
+            background-color: #dcfce7;
+            float: right;
+            text-align: right;
+        }
+        .timestamp {
+            font-size: 0.75em;
+            color: gray;
+            display: block;
+            margin-top: 5px;
+        }
+        .attachments a {
+            display: block;
+            font-size: 0.9em;
+            color: #333;
+            text-decoration: none;
+        }
+        .attachments a:hover {
+            text-decoration: underline;
+        }
+        form textarea {
+            width: 100%;
+            resize: vertical;
+            padding: 10px;
+        }
+        form input[type="file"] {
+            margin-top: 8px;
+        }
+        form button {
+            margin-top: 10px;
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        form button:hover {
+            background: #0056b3;
+        }
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
     </style>
 </head>
 <body>
@@ -104,12 +150,9 @@ $messages = $q->fetchAll(PDO::FETCH_ASSOC);
     <h2>Chat with Student — <?= htmlspecialchars($taskInfo['title']) ?></h2>
     <div class="chat-box">
         <?php foreach ($messages as $msg): ?>
-            <div class="message">
-                <strong class="<?= $msg['sender_role'] ?>">
-                    <?= htmlspecialchars($msg['sender_name']) ?>:
-                </strong>
-                <?= nl2br(htmlspecialchars($msg['message'])) ?><br>
-                <span class="timestamp">[<?= $msg['sent_at'] ?>]</span>
+            <div class="message <?= $msg['sender_role'] ?>">
+                <strong><?= htmlspecialchars($msg['sender_name']) ?>:</strong><br>
+                <?= nl2br(htmlspecialchars($msg['message'])) ?>
                 <?php if (!empty($msg['file_path'])): ?>
                     <div class="attachments">
                         <?php foreach (explode(',', $msg['file_path']) as $file): ?>
@@ -117,13 +160,14 @@ $messages = $q->fetchAll(PDO::FETCH_ASSOC);
                         <?php endforeach; ?>
                     </div>
                 <?php endif; ?>
+                <span class="timestamp"><?= $msg['sent_at'] ?></span>
             </div>
         <?php endforeach; ?>
     </div>
 
     <form method="POST" enctype="multipart/form-data">
-        <textarea name="message" rows="3" style="width:100%;" placeholder="Type your message..." required></textarea><br>
-        <input type="file" name="attachment[]" multiple>
+        <textarea name="message" rows="3" placeholder="Type your message..." required></textarea><br>
+        <input type="file" name="attachment[]" multiple><br>
         <input type="hidden" name="type" value="General">
         <button type="submit">Send</button>
     </form>

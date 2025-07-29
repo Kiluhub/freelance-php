@@ -1,5 +1,5 @@
 <?php
-// admin_dashboard.php
+// ✅ admin_chat.php (Full working version)
 require 'connect.php';
 require 'vendor/autoload.php';
 
@@ -8,6 +8,7 @@ use Firebase\JWT\Key;
 
 $secretKey = getenv('JWT_SECRET') ?: 'your-very-secret-key';
 
+// Authenticate using JWT only
 if (!isset($_COOKIE['admin_token'])) {
     header("Location: admin_auth.php");
     exit;
@@ -18,132 +19,114 @@ try {
     if ($decoded->role !== 'admin') {
         throw new Exception("Not admin");
     }
-    $adminId = $decoded->id;
-    $adminName = $decoded->name ?? 'Admin';
+    $adminId = $decoded->admin_id ?? null;
+    $adminName = $decoded->admin_name ?? 'Admin';
 } catch (Exception $e) {
     header("Location: admin_auth.php");
     exit;
 }
 
-$sql = "SELECT q.*, u.full_name FROM questions q JOIN users u ON q.student_id = u.id ORDER BY q.created_at DESC";
-$result = $conn->query($sql);
-?>
+$taskId = $_GET['task_id'] ?? null;
+if (!$taskId || !is_numeric($taskId)) {
+    die("❌ Invalid or missing task ID.");
+}
 
+// Validate task exists
+$check = $conn->prepare("SELECT id, title, student_id FROM questions WHERE id = :tid");
+$check->execute(['tid' => $taskId]);
+$taskInfo = $check->fetch(PDO::FETCH_ASSOC);
+if (!$taskInfo) {
+    die("❌ Task not found.");
+}
+
+// Handle message submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty(trim($_POST['message']))) {
+    $msg = trim($_POST['message']);
+    $type = $_POST['type'] ?? 'Other';
+    $files_paths = [];
+
+    if (!empty($_FILES['attachment']['name'][0])) {
+        $uploadDir = 'uploads/chat/';
+        if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
+
+        foreach ($_FILES['attachment']['tmp_name'] as $i => $tmp) {
+            if (is_uploaded_file($tmp)) {
+                $name = basename($_FILES['attachment']['name'][$i]);
+                $dest = $uploadDir . uniqid() . '_' . $name;
+                if (move_uploaded_file($tmp, $dest)) {
+                    $files_paths[] = $dest;
+                }
+            }
+        }
+    }
+
+    $files_csv = implode(',', $files_paths);
+    $stmt = $conn->prepare("INSERT INTO messages (task_id, sender_role, sender_id, sender_name, message, type, file_path) VALUES (:tid, 'admin', :sender_id, :sender_name, :msg, :type, :file_path)");
+    $stmt->execute([
+        'tid' => $taskId,
+        'sender_id' => $adminId,
+        'sender_name' => $adminName,
+        'msg' => $msg,
+        'type' => $type,
+        'file_path' => $files_csv
+    ]);
+
+    header("Location: admin_chat.php?task_id=$taskId");
+    exit;
+}
+
+// Mark all unseen student messages as seen
+$conn->prepare("UPDATE messages SET seen_by_admin = TRUE WHERE task_id = :tid AND sender_role = 'student' AND seen_by_admin = FALSE")
+    ->execute(['tid' => $taskId]);
+
+// Fetch messages
+$q = $conn->prepare("SELECT * FROM messages WHERE task_id = :tid ORDER BY sent_at ASC");
+$q->execute(['tid' => $taskId]);
+$messages = $q->fetchAll(PDO::FETCH_ASSOC);
+?>
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Admin Dashboard</title>
+    <title>Admin Chat</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #f2f6fa;
-            padding: 20px;
-        }
-        .logout-btn {
-            float: right;
-            background: red;
-            color: white;
-            border: none;
-            padding: 8px 14px;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background: white;
-            box-shadow: 0 0 10px #ccc;
-            margin-top: 30px;
-        }
-        th, td {
-            padding: 12px;
-            border: 1px solid #ddd;
-            text-align: left;
-        }
-        th {
-            background: black;
-            color: white;
-        }
-        .expand-toggle {
-            background: #007BFF;
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .description-content {
-            display: none;
-            margin-top: 10px;
-            background: #f9f9f9;
-            padding: 10px;
-            border-radius: 5px;
-        }
-        .chat-link {
-            background: green;
-            color: white;
-            padding: 6px 12px;
-            border-radius: 4px;
-            text-decoration: none;
-        }
-        .download-btn {
-            background: darkorange;
-            color: white;
-            padding: 5px 10px;
-            border-radius: 4px;
-            text-decoration: none;
-        }
+        body { font-family: Arial, sans-serif; background: #eef2f5; padding: 20px; }
+        .chat-container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px #ccc; }
+        .chat-box { max-height: 400px; overflow-y: auto; margin-bottom: 20px; padding-right: 10px; }
+        .message { margin-bottom: 15px; }
+        .student { color: blue; }
+        .admin { color: green; }
+        .timestamp { font-size: 0.8em; color: gray; }
+        .attachments a { display: block; font-size: 0.9em; }
     </style>
-    <script>
-        function toggleDescription(index) {
-            const content = document.getElementById("desc-" + index);
-            content.style.display = content.style.display === "block" ? "none" : "block";
-        }
-    </script>
 </head>
 <body>
-<form method="post" action="admin_logout.php">
-    <button class="logout-btn">Logout</button>
-</form>
-<h2>Admin Dashboard — Submitted Questions</h2>
-<table>
-    <tr>
-        <th>Student</th>
-        <th>Title</th>
-        <th>Pages</th>
-        <th>Price ($)</th>
-        <th>Description</th>
-        <th>File</th>
-        <th>Posted</th>
-        <th>Chat</th>
-    </tr>
-    <?php $i = 0; ?>
-    <?php while ($row = $result->fetch(PDO::FETCH_ASSOC)): ?>
-    <tr>
-        <td><?= htmlspecialchars($row['full_name']) ?></td>
-        <td><?= htmlspecialchars($row['title']) ?></td>
-        <td><?= (int)$row['pages'] ?></td>
-        <td><?= number_format($row['price'], 2) ?></td>
-        <td>
-            <button class="expand-toggle" onclick="toggleDescription(<?= $i ?>)">View</button>
-            <div class="description-content" id="desc-<?= $i ?>">
-                <strong>Description:</strong><br><?= nl2br(htmlspecialchars($row['description'])) ?><br><br>
-                <strong>Other Info:</strong><br><?= nl2br(htmlspecialchars($row['other_info'] ?? '')) ?>
+<div class="chat-container">
+    <h2>Chat with Student — <?= htmlspecialchars($taskInfo['title']) ?></h2>
+    <div class="chat-box">
+        <?php foreach ($messages as $msg): ?>
+            <div class="message">
+                <strong class="<?= $msg['sender_role'] ?>">
+                    <?= htmlspecialchars($msg['sender_name']) ?>:
+                </strong>
+                <?= nl2br(htmlspecialchars($msg['message'])) ?><br>
+                <span class="timestamp">[<?= $msg['sent_at'] ?>]</span>
+                <?php if (!empty($msg['file_path'])): ?>
+                    <div class="attachments">
+                        <?php foreach (explode(',', $msg['file_path']) as $file): ?>
+                            <a href="<?= htmlspecialchars($file) ?>" download>📎 <?= basename($file) ?></a>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
             </div>
-        </td>
-        <td>
-            <?php if (!empty($row['file_path'])): ?>
-                <a class="download-btn" href="<?= htmlspecialchars($row['file_path']) ?>" download>Download</a>
-            <?php else: ?>
-                N/A
-            <?php endif; ?>
-        </td>
-        <td><?= htmlspecialchars($row['created_at']) ?></td>
-        <td>
-            <a class="chat-link" href="admin_chat.php?task_id=<?= $row['id'] ?>">Chat</a>
-        </td>
-    </tr>
-    <?php $i++; endwhile; ?>
-</table>
+        <?php endforeach; ?>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data">
+        <textarea name="message" rows="3" style="width:100%;" placeholder="Type your message..." required></textarea><br>
+        <input type="file" name="attachment[]" multiple>
+        <input type="hidden" name="type" value="General">
+        <button type="submit">Send</button>
+    </form>
+</div>
 </body>
 </html>

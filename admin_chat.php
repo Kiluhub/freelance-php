@@ -29,11 +29,12 @@ if (!$taskId || !is_numeric($taskId)) {
     die("❌ Invalid or missing task ID.");
 }
 
-// Get task info with student name
+// Get task info with student name and tutor name
 $check = $conn->prepare("
-    SELECT q.id, q.title, q.student_id, u.full_name 
+    SELECT q.id, q.title, q.student_id, u.full_name AS student_name, q.tutor_id, t.full_name AS tutor_name
     FROM questions q
     JOIN users u ON q.student_id = u.id
+    LEFT JOIN tutors t ON q.tutor_id = t.id
     WHERE q.id = :tid
 ");
 $check->execute(['tid' => $taskId]);
@@ -176,7 +177,8 @@ $messages = $q->fetchAll(PDO::FETCH_ASSOC);
     <h2>
         Task: <?= htmlspecialchars($taskInfo['title']) ?><br>
         <small style="font-weight: normal; color: gray;">
-            Student: <?= htmlspecialchars($taskInfo['full_name']) ?> (ID: <?= htmlspecialchars($taskInfo['student_id']) ?>)
+            Student: <?= htmlspecialchars($taskInfo['student_name']) ?> (ID: <?= htmlspecialchars($taskInfo['student_id']) ?>)<br>
+            Tutor: <?= htmlspecialchars($taskInfo['tutor_name'] ?? 'Not Assigned') ?>
         </small>
     </h2>
 

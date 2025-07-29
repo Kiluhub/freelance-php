@@ -18,8 +18,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $price = (float)$_POST['price'];
     $description = trim($_POST['description']);
     $other_info = trim($_POST['other_info']);
+    $tutorId = isset($_POST['tutor_id']) ? (int)$_POST['tutor_id'] : 0;
 
-    if ($price < 1) {
+    if ($tutorId <= 0) {
+        $error = "⚠️ Please select a tutor.";
+    } elseif ($price < 1) {
         $error = "⚠️ Price must be at least $1.";
     } elseif ($pages < 1) {
         $error = "⚠️ Number of pages must be at least 1.";
@@ -41,11 +44,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (!$error) {
             $stmt = $conn->prepare("
-                INSERT INTO questions (student_id, title, pages, price, description, other_info, file_path, created_at) 
-                VALUES (:student_id, :title, :pages, :price, :description, :other_info, :file_path, NOW())
+                INSERT INTO questions (student_id, tutor_id, title, pages, price, description, other_info, file_path, created_at) 
+                VALUES (:student_id, :tutor_id, :title, :pages, :price, :description, :other_info, :file_path, NOW())
             ");
             $stmt->execute([
                 'student_id' => $studentId,
+                'tutor_id' => $tutorId,
                 'title' => $title,
                 'pages' => $pages,
                 'price' => $price,
@@ -59,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Fetch existing tasks for this student
-$stmt = $conn->prepare("SELECT * FROM questions WHERE student_id = :student_id ORDER BY created_at DESC");
+$stmt = $conn->prepare("SELECT q.*, t.full_name AS tutor_name FROM questions q LEFT JOIN tutors t ON q.tutor_id = t.id WHERE q.student_id = :student_id ORDER BY q.created_at DESC");
 $stmt->execute(['student_id' => $studentId]);
 $tasks = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
@@ -75,7 +79,7 @@ $tasks = $stmt->fetchAll(PDO::FETCH_ASSOC);
         h2 { margin-bottom: 20px; text-align: center; }
 
         form { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px #ccc; }
-        input, textarea, button {
+        input, textarea, select, button {
             width: 100%;
             margin-top: 10px;
             padding: 10px;
@@ -160,6 +164,20 @@ $tasks = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <textarea name="description" placeholder="Task Description" rows="4" required></textarea>
         <textarea name="other_info" placeholder="Other Instructions (optional)" rows="3"></textarea>
         <input type="file" name="file">
+
+        <label for="tutor_id"><strong>Choose a Tutor:</strong></label>
+        <select name="tutor_id" required>
+            <option value="">-- Select Tutor --</option>
+            <?php
+            $tutorStmt = $conn->query("SELECT id, full_name FROM tutors ORDER BY full_name ASC");
+            $tutors = $tutorStmt->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($tutors as $tutor):
+            ?>
+                <option value="<?= $tutor['id'] ?>"><?= htmlspecialchars($tutor['full_name']) ?></option>
+            <?php endforeach; ?>
+        </select>
+        <a href="tutors.php" target="_blank" style="color:#007BFF; font-size:14px; display:inline-block; margin-top:8px;">🔍 View Tutor Profiles</a>
+
         <button type="submit">Submit Task</button>
     </form>
 
@@ -170,6 +188,7 @@ $tasks = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <th>Title</th>
                 <th>Pages</th>
                 <th>Price ($)</th>
+                <th>Tutor</th>
                 <th>File</th>
                 <th>Posted</th>
                 <th>Info</th>
@@ -180,6 +199,7 @@ $tasks = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <td><?= htmlspecialchars($task['title']) ?></td>
                     <td><?= $task['pages'] ?></td>
                     <td><?= number_format($task['price'], 2) ?></td>
+                    <td><?= htmlspecialchars($task['tutor_name'] ?? 'N/A') ?></td>
                     <td>
                         <?= $task['file_path'] ? "<a href='{$task['file_path']}' download>Download</a>" : "N/A" ?>
                     </td>

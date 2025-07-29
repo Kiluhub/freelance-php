@@ -29,9 +29,16 @@ if (!$taskId || !is_numeric($taskId)) {
     die("❌ Invalid or missing task ID.");
 }
 
-$check = $conn->prepare("SELECT id, title, student_id FROM questions WHERE id = :tid");
+// Get task info with student name
+$check = $conn->prepare("
+    SELECT q.id, q.title, q.student_id, u.full_name 
+    FROM questions q
+    JOIN users u ON q.student_id = u.id
+    WHERE q.id = :tid
+");
 $check->execute(['tid' => $taskId]);
 $taskInfo = $check->fetch(PDO::FETCH_ASSOC);
+
 if (!$taskInfo) {
     die("❌ Task not found.");
 }
@@ -72,9 +79,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty(trim($_POST['message']))) {
     exit;
 }
 
+// Mark messages as seen
 $conn->prepare("UPDATE messages SET seen_by_admin = TRUE WHERE task_id = :tid AND sender_role = 'student' AND seen_by_admin = FALSE")
     ->execute(['tid' => $taskId]);
 
+// Fetch all messages
 $q = $conn->prepare("SELECT * FROM messages WHERE task_id = :tid ORDER BY sent_at ASC");
 $q->execute(['tid' => $taskId]);
 $messages = $q->fetchAll(PDO::FETCH_ASSOC);
@@ -164,7 +173,13 @@ $messages = $q->fetchAll(PDO::FETCH_ASSOC);
 </head>
 <body>
 <div class="chat-container">
-    <h2>Chat with Student — <?= htmlspecialchars($taskInfo['title']) ?></h2>
+    <h2>
+        Task: <?= htmlspecialchars($taskInfo['title']) ?><br>
+        <small style="font-weight: normal; color: gray;">
+            Student: <?= htmlspecialchars($taskInfo['full_name']) ?> (ID: <?= htmlspecialchars($taskInfo['student_id']) ?>)
+        </small>
+    </h2>
+
     <div class="chat-box">
         <?php foreach ($messages as $msg): ?>
             <div class="message <?= $msg['sender_role'] ?>">
@@ -190,6 +205,7 @@ $messages = $q->fetchAll(PDO::FETCH_ASSOC);
         <button type="submit">Send</button>
     </form>
 </div>
+
 <script>
     const fileInput = document.getElementById('fileInput');
     const filePreview = document.getElementById('filePreview');

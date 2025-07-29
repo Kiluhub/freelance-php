@@ -233,17 +233,6 @@ if ($preselectedTutorName) {
     </form>
 
     <a class="back-link" href="index.php">← Back to Home</a>
-
-    <!-- Tutor List Below the Form -->
-    <div class="tutor-list">
-        <h3>📚 Tutor List:</h3>
-        <?php foreach ($tutors as $tutor): ?>
-            <div class="tutor-box">
-                <h3><?= htmlspecialchars($tutor['full_name']) ?> — <?= htmlspecialchars($tutor['subject']) ?></h3>
-                <p><?= nl2br(htmlspecialchars($tutor['bio'])) ?></p>
-            </div>
-        <?php endforeach; ?>
-    </div>
 </div>
 
 </body>

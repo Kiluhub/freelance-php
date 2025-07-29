@@ -11,13 +11,25 @@ include 'header.php';
 $student_id = $_SESSION['student_id'];
 
 // Fetch tutors from DB
-$tutorsStmt = $conn->query("SELECT id, full_name, subject FROM tutors ORDER BY id DESC");
+$tutorsStmt = $conn->query("SELECT id, full_name, subject, bio FROM tutors ORDER BY id DESC");
 $tutors = $tutorsStmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Check if student has previous questions
 $checkTasksStmt = $conn->prepare("SELECT COUNT(*) FROM questions WHERE student_id = :sid");
 $checkTasksStmt->execute(['sid' => $student_id]);
 $hasTasks = $checkTasksStmt->fetchColumn() > 0;
+
+// Check if tutor name is preselected via GET
+$preselectedTutorName = $_GET['tutor_name'] ?? '';
+$preselectedTutorId = null;
+if ($preselectedTutorName) {
+    foreach ($tutors as $tutor) {
+        if (strcasecmp($tutor['full_name'], $preselectedTutorName) === 0) {
+            $preselectedTutorId = $tutor['id'];
+            break;
+        }
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -141,6 +153,28 @@ $hasTasks = $checkTasksStmt->fetchColumn() > 0;
         .view-all a:hover {
             text-decoration: underline;
         }
+
+        .tutor-list {
+            margin-top: 40px;
+        }
+
+        .tutor-box {
+            background: #fff3cd;
+            border-left: 6px solid #ffc107;
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+        }
+
+        .tutor-box h3 {
+            margin: 0 0 5px;
+            color: #856404;
+        }
+
+        .tutor-box p {
+            margin: 2px 0;
+            color: #555;
+        }
     </style>
 </head>
 <body>
@@ -156,7 +190,7 @@ $hasTasks = $checkTasksStmt->fetchColumn() > 0;
     <h2>Post Your Assignment or Question</h2>
 
     <div class="disclaimer">
-         Please note: Your payment is held safely until you're satisfied with the solution. If not, you can request a refund, subject to support approval.
+        Please note: Your payment is held safely until you're satisfied with the solution. If not, you can request a refund, subject to support approval.
     </div>
 
     <form action="submit_question.php" method="post" enctype="multipart/form-data">
@@ -166,11 +200,12 @@ $hasTasks = $checkTasksStmt->fetchColumn() > 0;
         <select name="tutor_id" id="tutor_id" required>
             <option value="">-- Select a Tutor --</option>
             <?php foreach ($tutors as $tutor): ?>
-                <option value="<?= $tutor['id'] ?>">
+                <option value="<?= $tutor['id'] ?>" <?= $tutor['id'] == $preselectedTutorId ? 'selected' : '' ?>>
                     <?= htmlspecialchars($tutor['full_name']) ?> — <?= htmlspecialchars($tutor['subject']) ?>
                 </option>
             <?php endforeach; ?>
         </select>
+
         <div class="view-all">
             Or <a href="tutors.php" target="_blank">View All Tutors</a>
         </div>
@@ -198,6 +233,17 @@ $hasTasks = $checkTasksStmt->fetchColumn() > 0;
     </form>
 
     <a class="back-link" href="index.php">← Back to Home</a>
+
+    <!-- Tutor List Below the Form -->
+    <div class="tutor-list">
+        <h3>📚 Tutor List:</h3>
+        <?php foreach ($tutors as $tutor): ?>
+            <div class="tutor-box">
+                <h3><?= htmlspecialchars($tutor['full_name']) ?> — <?= htmlspecialchars($tutor['subject']) ?></h3>
+                <p><?= nl2br(htmlspecialchars($tutor['bio'])) ?></p>
+            </div>
+        <?php endforeach; ?>
+    </div>
 </div>
 
 </body>

@@ -1,198 +1,134 @@
-<?php
-session_start();
-if (!isset($_SESSION['student_id'])) {
-    header("Location: login.php");
-    exit();
-}
-
-require 'connect.php';
-include 'header.php';
-
-$student_id = $_SESSION['student_id'];
-
-// Fetch tutors from DB
-$tutorsStmt = $conn->query("SELECT id, full_name, subject, bio FROM tutors ORDER BY id DESC");
-$tutors = $tutorsStmt->fetchAll(PDO::FETCH_ASSOC);
-
-// Check if student has previous questions
-$checkTasksStmt = $conn->prepare("SELECT COUNT(*) FROM questions WHERE student_id = :sid");
-$checkTasksStmt->execute(['sid' => $student_id]);
-$hasTasks = $checkTasksStmt->fetchColumn() > 0;
-
-// Get pre-selected tutor name (if any)
-$selectedTutorName = isset($_GET['tutor_name']) ? urldecode($_GET['tutor_name']) : '';
-$selectedTutorId = null;
-foreach ($tutors as $tutor) {
-    if (strcasecmp($tutor['full_name'], $selectedTutorName) === 0) {
-        $selectedTutorId = $tutor['id'];
-        break;
-    }
-}
-?>
+<?php include 'header.php'; ?>
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Post a Question - SmartLearn</title>
+    <title>Top Tutors - SmartLearn</title>
     <style>
         body {
             font-family: 'Segoe UI', sans-serif;
-            background-color: #f0f4f8;
+            background: #f4f6fa;
             margin: 0;
+            padding: 20px;
         }
 
-        .container {
-            max-width: 850px;
-            margin: 50px auto;
-            background: #ffffff;
-            padding: 30px 40px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        h2 {
+            text-align: center;
+            margin-bottom: 40px;
+            color: #111;
+        }
+
+        .tutor-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 30px;
+            max-width: 1100px;
+            margin: auto;
+        }
+
+        .tutor-card {
+            background: white;
             border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s;
+            position: relative;
+            z-index: 1;
         }
 
-        .task-link {
-            text-align: right;
+        .tutor-card:hover {
+            transform: translateY(-5px);
+            z-index: 10;
+        }
+
+        .tutor-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+
+        .tutor-details {
+            padding: 20px;
+        }
+
+        .tutor-name {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .tutor-subject {
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 10px;
+        }
+
+        .tutor-rating {
+            color: #ffa500;
+            margin-bottom: 12px;
+        }
+
+        .tutor-desc {
+            font-size: 14px;
+            color: #444;
             margin-bottom: 15px;
         }
 
-        .task-link a {
+        .contact-link, .choose-link {
             display: inline-block;
-            background-color: #28a745;
+            background: black;
             color: white;
             padding: 10px 16px;
             border-radius: 6px;
             text-decoration: none;
             font-size: 14px;
+            margin-right: 10px;
         }
 
-        h2 {
-            text-align: center;
-            color: #222;
-            margin-bottom: 20px;
+        .choose-link {
+            background: #28a745;
         }
 
-        .disclaimer {
-            background-color: #e3f2fd;
-            color: #0056b3;
-            padding: 12px 15px;
-            border-left: 5px solid #2196f3;
-            margin-bottom: 25px;
-            border-radius: 6px;
+        .contact-link:hover {
+            background: #222;
         }
 
-        label {
-            font-weight: bold;
-            display: block;
-            margin-top: 20px;
-            color: #333;
-        }
-
-        input[type="text"],
-        input[type="number"],
-        textarea,
-        input[type="file"],
-        select {
-            width: 100%;
-            padding: 12px;
-            margin-top: 8px;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            font-size: 15px;
-        }
-
-        textarea {
-            height: 100px;
-            resize: vertical;
-        }
-
-        .selected-tutor {
-            margin-top: 10px;
-            color: #007bff;
-            font-weight: bold;
-        }
-
-        button {
-            margin-top: 25px;
-            background-color: red;
-            color: white;
-            border: none;
-            padding: 14px 28px;
-            font-size: 16px;
-            cursor: pointer;
-            border-radius: 6px;
-            transition: background-color 0.3s ease;
-        }
-
-        button:hover {
-            background-color: darkred;
-        }
-
-        .back-link {
-            display: block;
-            margin-top: 20px;
-            text-align: center;
-            color: #0066cc;
-            text-decoration: none;
-        }
-
-        .back-link:hover {
-            text-decoration: underline;
+        .choose-link:hover {
+            background: #1e7e34;
         }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <?php if ($hasTasks): ?>
-        <div class="task-link">
-            <a href="submit_question.php">📂 See Your Previous Tasks</a>
+<h2>Meet Our Top Tutors</h2>
+
+<div class="tutor-grid">
+
+    <?php
+    $tutors = [
+        ["name" => "Dr. Ali Hassan", "subject" => "Nursing & Healthcare", "rating" => 4.9, "img" => "tutor1.jpg", "desc" => "Over 8 years of experience in clinical case analysis and nursing essays."],
+        ["name" => "James Martin", "subject" => "Engineering & Math", "rating" => 4.7, "img" => "tutor6.jpg", "desc" => "Mechanical engineer helping students with technical problem solving."],
+        ["name" => "Maria Sanchez", "subject" => "Literature & Humanities", "rating" => 4.8, "img" => "tutor3.jpg", "desc" => "Passionate about creative writing, essays, and research reviews."],
+        ["name" => "Alice Martinez", "subject" => "Finance & Business", "rating" => 4.6, "img" => "tutor4.jpg", "desc" => "Expert in financial modeling, accounting, and market analysis."],
+        ["name" => "Chen Liu", "subject" => "Computer Science", "rating" => 5.0, "img" => "tutor5.jpg", "desc" => "Specializes in algorithms, data structures, and project help."]
+    ];
+
+    foreach ($tutors as $tutor):
+    ?>
+        <div class="tutor-card">
+            <img class="tutor-image" src="images/<?= htmlspecialchars($tutor['img']) ?>" alt="Tutor Image">
+            <div class="tutor-details">
+                <div class="tutor-name"><?= htmlspecialchars($tutor['name']) ?></div>
+                <div class="tutor-subject"><?= htmlspecialchars($tutor['subject']) ?></div>
+                <div class="tutor-rating">⭐ <?= number_format($tutor['rating'], 1) ?>/5.0</div>
+                <div class="tutor-desc"><?= htmlspecialchars($tutor['desc']) ?></div>
+                <a href="contact.php" class="contact-link">Contact Tutor</a>
+                <a href="post_question.php?tutor_name=<?= urlencode($tutor['name']) ?>" class="choose-link">Choose</a>
+            </div>
         </div>
-    <?php endif; ?>
+    <?php endforeach; ?>
 
-    <h2>Post Your Assignment or Question</h2>
-
-    <div class="disclaimer">
-        💬 Please note: Your payment is held safely until you're satisfied with the solution. If not, you can request a refund, subject to support approval.
-    </div>
-
-    <form action="submit_question.php" method="post" enctype="multipart/form-data">
-        <label for="tutor_id">Choose a Tutor:</label>
-        <select name="tutor_id" id="tutor_id" required>
-            <option value="">-- Select a tutor --</option>
-            <?php foreach ($tutors as $tutor): ?>
-                <option value="<?= $tutor['id'] ?>" <?= $selectedTutorId === $tutor['id'] ? 'selected' : '' ?>>
-                    <?= htmlspecialchars($tutor['full_name']) ?> — <?= htmlspecialchars($tutor['subject']) ?>
-                </option>
-            <?php endforeach; ?>
-        </select>
-
-        <?php if ($selectedTutorId): ?>
-            <div class="selected-tutor">✔ Tutor selected: <?= htmlspecialchars($selectedTutorName) ?></div>
-        <?php endif; ?>
-
-        <label for="title">Question Title:</label>
-        <input type="text" name="title" id="title" required>
-
-        <label for="pages">Number of Pages:</label>
-        <input type="number" name="pages" id="pages" required min="1">
-
-        <label for="price">Price (in USD):</label>
-        <input type="number" name="price" id="price" required min="1" step="0.01">
-
-        <label for="description">Description:</label>
-        <textarea name="description" id="description" required></textarea>
-
-        <label for="other_info">Other Info (optional):</label>
-        <textarea name="other_info" id="other_info"></textarea>
-
-        <label for="file">Upload File (optional):</label>
-        <input type="file" name="file" id="file">
-
-        <button type="submit">Submit Question</button>
-    </form>
-
-    <a class="back-link" href="index.php">← Back to Home</a>
 </div>
 
 </body>

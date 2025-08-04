@@ -69,7 +69,7 @@
         </div>
 
         <div class="contact-item">
-            <i>⏰</i> Support Hours
+            <i>⏰</i> 24/7 Live Support  
         </div>
 
 </div>

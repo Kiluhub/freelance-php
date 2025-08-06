@@ -8,7 +8,7 @@ use Firebase\JWT\Key;
 $secretKey = getenv('JWT_SECRET') ?: 'your-very-secret-key';
 
 if (!isset($_COOKIE['admin_token'])) {
-    header("Location: admin_auth.php");
+    header("Location: login.php");
     exit;
 }
 
@@ -17,18 +17,12 @@ try {
     if ($decoded->role !== 'admin') {
         throw new Exception("Unauthorized");
     }
+    $adminName = $decoded->name ?? 'Admin';
 } catch (Exception $e) {
-    header("Location: admin_auth.php");
+    header("Location: login.php");
     exit;
 }
-
-$sql = "SELECT q.*, u.id AS student_id, u.full_name 
-        FROM questions q
-        JOIN users u ON q.student_id = u.id
-        ORDER BY q.created_at DESC";
-$result = $conn->query($sql);
 ?>
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -36,246 +30,144 @@ $result = $conn->query($sql);
     <style>
         body {
             font-family: Arial, sans-serif;
-            background: #f2f6fa;
-            padding: 20px;
         }
-        header {
+
+        .navbar {
+            background-color: #222;
+            color: white;
+            padding: 10px 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: #001f3f;
-            color: white;
-            padding: 15px 25px;
-            border-radius: 6px;
         }
-        h2 {
-            text-align: center;
-            margin: 40px 0 20px;
-        }
-        .logout-btn {
-            background: red;
-            color: white;
-            border: none;
-            padding: 8px 14px;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        .notif-container {
-            position: relative;
-        }
-        #notif-btn {
-            background: none;
-            border: none;
-            font-size: 20px;
-            color: white;
-            cursor: pointer;
-        }
-        #notif-count {
-            color: white;
-            background: red;
-            border-radius: 50%;
-            padding: 2px 6px;
-            font-size: 12px;
-            position: absolute;
-            top: -8px;
-            right: -10px;
-            display: none;
-        }
-        #notif-box {
-            display: none;
-            position: absolute;
-            right: 0;
-            background: #fff;
-            box-shadow: 0 0 8px rgba(0,0,0,0.2);
-            width: 300px;
-            z-index: 100;
-            border-radius: 5px;
-            overflow: auto;
-            max-height: 300px;
-        }
-        #notif-list {
-            list-style: none;
-            padding: 10px;
+
+        .navbar h1 {
             margin: 0;
         }
-        #notif-list li a {
-            text-decoration: none;
-            color: #333;
-            display: block;
-            padding: 8px;
-            border-bottom: 1px solid #eee;
+
+        .dropdown {
+            position: relative;
+            display: inline-block;
         }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background: white;
-            box-shadow: 0 0 10px #ccc;
-            margin-top: 30px;
-        }
-        th, td {
-            padding: 12px;
-            border: 1px solid #ddd;
-            text-align: left;
-        }
-        th {
-            background: black;
+
+        .dropbtn {
+            background-color: #222;
             color: white;
-        }
-        .expand-toggle {
-            background: #007BFF;
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .description-content {
-            display: none;
-            margin-top: 10px;
-            background: #f9f9f9;
             padding: 10px;
-            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
         }
-        .chat-link {
-            background: green;
+
+        .badge {
+            background-color: red;
             color: white;
-            padding: 6px 12px;
-            border-radius: 4px;
+            border-radius: 50%;
+            padding: 3px 8px;
+            font-size: 12px;
+            vertical-align: top;
+            margin-left: 5px;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: white;
+            min-width: 300px;
+            box-shadow: 0px 8px 16px rgba(0,0,0,0.2);
+            z-index: 1;
+            right: 0;
+            color: black;
+        }
+
+        .dropdown-content li {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .dropdown-content li:last-child {
+            border-bottom: none;
+        }
+
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+
+        .dropdown-content a {
+            color: black;
             text-decoration: none;
         }
-        .download-btn {
-            background: darkorange;
-            color: white;
-            padding: 5px 10px;
-            border-radius: 4px;
-            text-decoration: none;
+
+        .dropdown-content a:hover {
+            background-color: #f1f1f1;
+        }
+
+        .time {
+            display: block;
+            font-size: 12px;
+            color: gray;
         }
     </style>
 </head>
 <body>
+    <div class="navbar">
+        <h1>Welcome, <?php echo htmlspecialchars($adminName); ?></h1>
 
-<header>
-    <div style="font-size: 22px; font-weight: bold;">Admin Dashboard</div>
-    <div style="display: flex; align-items: center; gap: 20px;">
-        <div class="notif-container">
-            <button id="notif-btn">🔔 <span id="notif-count"></span></button>
-            <div id="notif-box">
-                <ul id="notif-list"></ul>
-                <div style="text-align: center; padding: 5px;">
-                    <button id="mute-btn">🔊 Sound On</button>
-                </div>
-            </div>
+        <div class="dropdown">
+            <button class="dropbtn">
+                🔔 Notifications <span class="badge" id="notifCount">0</span>
+            </button>
+            <ul class="dropdown-content" id="notifDropdown">
+                <li>No new messages</li>
+            </ul>
         </div>
-        <form method="post" action="admin_logout.php" style="margin:0;">
-            <button class="logout-btn">Logout</button>
-        </form>
     </div>
-</header>
 
-<h2>Submitted Questions</h2>
+    <script>
+        async function fetchNotifications() {
+            try {
+                const res = await fetch('fetch_notifications.php');
+                const data = await res.json();
 
-<table>
-    <tr>
-        <th>Student ID</th>
-        <th>Student Name</th>
-        <th>Title</th>
-        <th>Pages</th>
-        <th>Price ($)</th>
-        <th>Description</th>
-        <th>File</th>
-        <th>Posted</th>
-        <th>Chat</th>
-    </tr>
-    <?php $i = 0; ?>
-    <?php while ($row = $result->fetch(PDO::FETCH_ASSOC)): ?>
-        <tr>
-            <td><?= htmlspecialchars($row['student_id']) ?></td>
-            <td><?= htmlspecialchars($row['full_name']) ?></td>
-            <td><?= htmlspecialchars($row['title']) ?></td>
-            <td><?= (int)$row['pages'] ?></td>
-            <td><?= number_format($row['price'], 2) ?></td>
-            <td>
-                <button class="expand-toggle" onclick="toggleDescription(<?= $i ?>)">View</button>
-                <div class="description-content" id="desc-<?= $i ?>">
-                    <strong>Description:</strong><br><?= nl2br(htmlspecialchars($row['description'])) ?><br><br>
-                    <strong>Other Info:</strong><br><?= nl2br(htmlspecialchars($row['other_info'])) ?>
-                </div>
-            </td>
-            <td>
-                <?php if (!empty($row['file_path'])): ?>
-                    <a class="download-btn" href="<?= htmlspecialchars($row['file_path']) ?>" download>Download</a>
-                <?php else: ?>
-                    N/A
-                <?php endif; ?>
-            </td>
-            <td><?= htmlspecialchars($row['created_at']) ?></td>
-            <td><a class="chat-link" href="admin_chat.php?task_id=<?= $row['id'] ?>">Chat</a></td>
-        </tr>
-    <?php $i++; endwhile; ?>
-</table>
+                const dropdown = document.getElementById('notifDropdown');
+                const count = document.getElementById('notifCount');
 
-<audio id="notif-sound" src="notif.mp3" preload="auto"></audio>
+                dropdown.innerHTML = '';
 
-<script>
-let notifMuted = false;
-let previousNotifCount = 0;
+                if (data.length === 0) {
+                    dropdown.innerHTML = '<li>No new messages</li>';
+                    count.textContent = '0';
+                } else {
+                    data.forEach(n => {
+                        const li = document.createElement('li');
+                        li.innerHTML = `
+                            <a href="${n.link}">
+                                <strong>${n.sender}</strong>: ${n.message}<br>
+                                <span class="time">${n.time}</span>
+                            </a>
+                        `;
 
-document.getElementById("mute-btn").addEventListener("click", () => {
-    notifMuted = !notifMuted;
-    document.getElementById("mute-btn").textContent = notifMuted ? "🔇 Sound Off" : "🔊 Sound On";
-});
+                        // Optional: Mark as read on click
+                        li.querySelector('a').addEventListener('click', () => {
+                            fetch('mark_notification_read.php', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                                body: `message_id=${n.id}`
+                            });
+                        });
 
-document.getElementById("notif-btn").addEventListener("click", () => {
-    const box = document.getElementById("notif-box");
-    box.style.display = (box.style.display === "block") ? "none" : "block";
-});
+                        dropdown.appendChild(li);
+                    });
 
-function fetchNotifications() {
-    fetch("fetch_notifications.php")
-        .then(res => res.json())
-        .then(data => {
-            const count = data.length;
-            const notifCount = document.getElementById("notif-count");
-            const notifList = document.getElementById("notif-list");
-            notifList.innerHTML = "";
-
-            if (count > 0) {
-                notifCount.textContent = count;
-                notifCount.style.display = "inline-block";
-
-                data.forEach(n => {
-                    const li = document.createElement("li");
-                    li.innerHTML = `
-                        <a href="${n.link}">
-                            <div>
-                                <strong>${n.sender}</strong><br>
-                                <span>${n.message}</span><br>
-                                <small>${n.time}</small>
-                            </div>
-                        </a>
-                    `;
-                    notifList.appendChild(li);
-                });
-
-                if (!notifMuted && count > previousNotifCount) {
-                    document.getElementById("notif-sound").play();
+                    count.textContent = data.length;
                 }
-                previousNotifCount = count;
-            } else {
-                notifCount.style.display = "none";
-                notifList.innerHTML = "<li style='padding:10px; text-align:center;'>No new messages</li>";
-                previousNotifCount = 0;
+            } catch (err) {
+                console.error('Failed to fetch notifications:', err);
             }
-        });
-}
+        }
 
-fetchNotifications();
-setInterval(fetchNotifications, 500);
-function toggleDescription(index) {
-    const content = document.getElementById("desc-" + index);
-    content.style.display = (content.style.display === "block") ? "none" : "block";
-}
-</script>
-
+        fetchNotifications();
+        setInterval(fetchNotifications, 1000);
+    </script>
 </body>
 </html>

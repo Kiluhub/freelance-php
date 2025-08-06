@@ -72,7 +72,7 @@ $tasks = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Submit Task or  Scroll Down To See Your Submitted Tasks</title>
+    <title>Submit Task </title>
     <style>
         body { font-family: Arial, sans-serif; background: #f0f4f8; padding: 20px; }
         .container { max-width: 1000px; margin: auto; }
@@ -152,7 +152,7 @@ $tasks = $stmt->fetchAll(PDO::FETCH_ASSOC);
 </head>
 <body>
 <div class="container">
-    <h2>Submit a New Task</h2>
+    <h2>Submit a New Task or  Scroll Down To See Your Submitted Tasks</h2>
 
     <?php if ($success): ?><div class="status"><?= $success ?></div><?php endif; ?>
     <?php if ($error): ?><div class="error"><?= $error ?></div><?php endif; ?>

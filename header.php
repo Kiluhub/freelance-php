@@ -1,5 +1,7 @@
 <?php
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 $isLoggedIn = isset($_SESSION['student_id']);
 $studentName = $_SESSION['student_name'] ?? 'Student';
 ?>
@@ -25,13 +27,13 @@ $studentName = $_SESSION['student_name'] ?? 'Student';
         <a href="post_question.php" class="post-btn">Post a Question</a>
 
         <!-- 🔔 Notification Bell -->
-        <div style="position: relative; display: inline-block;">
+        <div class="notif-wrapper">
             <button id="notif-btn">
                 🔔 <span id="notif-count"></span>
             </button>
             <div id="notif-box">
                 <ul id="notif-list"></ul>
-                <div style="text-align: center; padding: 5px;">
+                <div class="notif-footer">
                     <button id="mute-btn">🔊 Sound On</button>
                 </div>
             </div>
@@ -41,16 +43,16 @@ $studentName = $_SESSION['student_name'] ?? 'Student';
         <?php if ($isLoggedIn): ?>
             <a href="logout.php">Logout (<?= htmlspecialchars($studentName) ?>)</a>
         <?php else: ?>
-            <a href="student_login.php">Login</a>
+            <a href="login.php">Login</a>
         <?php endif; ?>
     </nav>
 </header>
 
-<!-- 🔔 Sound -->
 <audio id="notif-sound" src="notif.mp3" preload="auto"></audio>
 
 <script>
 let notifMuted = false;
+
 document.getElementById("mute-btn")?.addEventListener("click", () => {
     notifMuted = !notifMuted;
     document.getElementById("mute-btn").textContent = notifMuted ? "🔇 Sound Off" : "🔊 Sound On";
@@ -77,8 +79,8 @@ function fetchNotifications() {
                 data.forEach(n => {
                     const li = document.createElement("li");
                     li.innerHTML = `
-                        <a href="${n.link}" style="text-decoration:none; color:#333;">
-                            <div style="padding:8px; border-bottom:1px solid #eee;">
+                        <a href="${n.link}" class="notif-item">
+                            <div>
                                 <strong>${n.sender}</strong><br>
                                 <span>${n.message}</span><br>
                                 <small>${n.time}</small>
@@ -91,7 +93,7 @@ function fetchNotifications() {
                 if (!notifMuted) document.getElementById("notif-sound").play();
             } else {
                 notifCount.style.display = "none";
-                notifList.innerHTML = "<li style='padding:10px; text-align:center;'>No new messages</li>";
+                notifList.innerHTML = "<li class='notif-empty'>No new messages</li>";
             }
         });
 }

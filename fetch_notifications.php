@@ -63,7 +63,7 @@ $messages = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $notifications = array_map(function($m) use ($userRole) {
     $link = $userRole === 'admin'
         ? "admin_chat.php?task_id=" . $m['task_id']
-        : "chat.php?task_id=" . $m['task_id'];
+        : "student_chat.php?task_id=" . $m['task_id'];
 
     return [
         'sender' => $m['sender_name'] . " (" . ucfirst($m['sender_role']) . ")",

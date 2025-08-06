@@ -72,7 +72,7 @@ $tasks = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Submit Task</title>
+    <title>Submit Task or  Scroll Down To See Your Submitted Tasks</title>
     <style>
         body { font-family: Arial, sans-serif; background: #f0f4f8; padding: 20px; }
         .container { max-width: 1000px; margin: auto; }

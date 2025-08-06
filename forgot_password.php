@@ -5,7 +5,7 @@ $message = '';
 
 // Resend email sender function
 function sendResetEmail($toEmail, $toName, $token) {
-    $apiKey = 're_693fPgJ4_JDggiDmj1yner7yGp6PmBPwo'; // Replace this with your real Resend key
+    $apiKey = 'YOUR_RESEND_API_KEY'; // Replace this with your real Resend key
     $resetLink = "https://freelance-php-iyko.onrender.com/reset_password.php?token=$token";
 
     $data = [

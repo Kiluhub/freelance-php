@@ -8,17 +8,16 @@ header('Content-Type: application/json');
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 
-// Determine role and ID
 $userRole = null;
 $userId = null;
 
-// Student
+// Student login
 if (isset($_SESSION['student_id'])) {
     $userRole = 'student';
     $userId = $_SESSION['student_id'];
 }
 
-// Admin
+// Admin login via JWT cookie
 if (!$userId && isset($_COOKIE['admin_token'])) {
     $secretKey = getenv('JWT_SECRET') ?: 'your-very-secret-key';
     try {
@@ -38,10 +37,8 @@ if (!$userId || !$userRole) {
     exit;
 }
 
-// Determine column for "seen" status
 $seenColumn = $userRole === 'admin' ? 'seen_by_admin' : 'seen_by_student';
 
-// Fetch unread messages
 $stmt = $conn->prepare("
     SELECT m.id, m.message, m.sent_at, m.task_id, m.sender_name, m.sender_role
     FROM messages m
@@ -56,22 +53,24 @@ $stmt = $conn->prepare("
     LIMIT 10
 ");
 
-$stmt->execute(['role' => $userRole, 'uid' => $userId]);
+$stmt->execute([
+    'role' => $userRole,
+    'uid' => $userId
+]);
+
 $messages = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Format notifications
-$notifications = array_map(function($m) use ($userRole) {
-    $link = $userRole === 'admin'
-        ? "admin_chat.php?task_id=" . $m['task_id']
-        : "student_chat.php?task_id=" . $m['task_id'];
+$notifications = [];
 
-    return [
-        'sender' => $m['sender_name'] . " (" . ucfirst($m['sender_role']) . ")",
-        'message' => substr($m['message'], 0, 80) . (strlen($m['message']) > 80 ? "..." : ""),
-        'link' => $link,
-        'time' => date("M j, Y g:i A", strtotime($m['sent_at']))
+foreach ($messages as $msg) {
+    $notifications[] = [
+        'sender' => $msg['sender_name'] . " (" . ucfirst($msg['sender_role']) . ")",
+        'message' => mb_substr($msg['message'], 0, 80) . (mb_strlen($msg['message']) > 80 ? "..." : ""),
+        'link' => $userRole === 'admin' 
+            ? "admin_chat.php?task_id=" . $msg['task_id']
+            : "student_chat.php?task_id=" . $msg['task_id'],
+        'time' => date("M j, Y g:i A", strtotime($msg['sent_at']))
     ];
-}, $messages);
+}
 
 echo json_encode($notifications);
-// returns json

@@ -13,6 +13,64 @@ $studentName = $_SESSION['student_name'] ?? 'Student';
     <meta charset="UTF-8">
     <title>SmartLearn</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        .notif-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+
+        #notif-box {
+            display: none;
+            position: absolute;
+            right: 0;
+            background: white;
+            width: 300px;
+            box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
+            z-index: 999;
+            max-height: 400px;
+            overflow-y: auto;
+            border-radius: 6px;
+        }
+
+        #notif-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        #notif-list li {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        #notif-list li a {
+            text-decoration: none;
+            color: #333;
+            display: block;
+        }
+
+        .notif-footer {
+            text-align: center;
+            padding: 5px;
+        }
+
+        #notif-count {
+            background: red;
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 12px;
+            position: relative;
+            top: -10px;
+            right: 5px;
+        }
+
+        .notif-empty {
+            text-align: center;
+            color: #777;
+            padding: 10px;
+        }
+    </style>
 </head>
 <body>
 
@@ -52,13 +110,14 @@ $studentName = $_SESSION['student_name'] ?? 'Student';
 
 <script>
 let notifMuted = false;
+let lastNotifCount = 0;
 
-document.getElementById("mute-btn")?.addEventListener("click", () => {
+document.getElementById("mute-btn").addEventListener("click", () => {
     notifMuted = !notifMuted;
     document.getElementById("mute-btn").textContent = notifMuted ? "🔇 Sound Off" : "🔊 Sound On";
 });
 
-document.getElementById("notif-btn")?.addEventListener("click", () => {
+document.getElementById("notif-btn").addEventListener("click", () => {
     const box = document.getElementById("notif-box");
     box.style.display = (box.style.display === "block") ? "none" : "block";
 });
@@ -67,19 +126,25 @@ function fetchNotifications() {
     fetch("fetch_notifications.php")
         .then(res => res.json())
         .then(data => {
-            const count = data.length;
             const notifCount = document.getElementById("notif-count");
             const notifList = document.getElementById("notif-list");
             notifList.innerHTML = "";
 
-            if (count > 0) {
-                notifCount.textContent = count;
+            if (data.length > 0) {
+                notifCount.textContent = data.length;
                 notifCount.style.display = "inline-block";
+
+                // Play sound only if there's new notification
+                if (!notifMuted && data.length > lastNotifCount) {
+                    document.getElementById("notif-sound").play();
+                }
+
+                lastNotifCount = data.length;
 
                 data.forEach(n => {
                     const li = document.createElement("li");
                     li.innerHTML = `
-                        <a href="${n.link}" class="notif-item">
+                        <a href="${n.link}">
                             <div>
                                 <strong>${n.sender}</strong><br>
                                 <span>${n.message}</span><br>
@@ -90,14 +155,15 @@ function fetchNotifications() {
                     notifList.appendChild(li);
                 });
 
-                if (!notifMuted) document.getElementById("notif-sound").play();
             } else {
                 notifCount.style.display = "none";
                 notifList.innerHTML = "<li class='notif-empty'>No new messages</li>";
+                lastNotifCount = 0;
             }
         });
 }
 
+// Initial fetch + repeat every 0.5 seconds
 fetchNotifications();
-setInterval(fetchNotifications, 30000);
+setInterval(fetchNotifications, 500);
 </script>

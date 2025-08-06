@@ -7,7 +7,6 @@ use Firebase\JWT\Key;
 
 $secretKey = getenv('JWT_SECRET') ?: 'your-very-secret-key';
 
-// Check JWT token
 if (!isset($_COOKIE['admin_token'])) {
     header("Location: admin_auth.php");
     exit;
@@ -23,7 +22,6 @@ try {
     exit;
 }
 
-// Fetch submitted tasks with student ID and name
 $sql = "SELECT q.*, u.id AS student_id, u.full_name 
         FROM questions q
         JOIN users u ON q.student_id = u.id
@@ -41,7 +39,6 @@ $result = $conn->query($sql);
             background: #f2f6fa;
             padding: 20px;
         }
-
         header {
             display: flex;
             justify-content: space-between;
@@ -51,12 +48,10 @@ $result = $conn->query($sql);
             padding: 15px 25px;
             border-radius: 6px;
         }
-
         h2 {
             text-align: center;
             margin: 40px 0 20px;
         }
-
         .logout-btn {
             background: red;
             color: white;
@@ -65,11 +60,9 @@ $result = $conn->query($sql);
             border-radius: 5px;
             cursor: pointer;
         }
-
         .notif-container {
             position: relative;
         }
-
         #notif-btn {
             background: none;
             border: none;
@@ -77,7 +70,6 @@ $result = $conn->query($sql);
             color: white;
             cursor: pointer;
         }
-
         #notif-count {
             color: white;
             background: red;
@@ -89,7 +81,6 @@ $result = $conn->query($sql);
             right: -10px;
             display: none;
         }
-
         #notif-box {
             display: none;
             position: absolute;
@@ -102,13 +93,18 @@ $result = $conn->query($sql);
             overflow: auto;
             max-height: 300px;
         }
-
         #notif-list {
             list-style: none;
             padding: 10px;
             margin: 0;
         }
-
+        #notif-list li a {
+            text-decoration: none;
+            color: #333;
+            display: block;
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+        }
         table {
             width: 100%;
             border-collapse: collapse;
@@ -116,18 +112,15 @@ $result = $conn->query($sql);
             box-shadow: 0 0 10px #ccc;
             margin-top: 30px;
         }
-
         th, td {
             padding: 12px;
             border: 1px solid #ddd;
             text-align: left;
         }
-
         th {
             background: black;
             color: white;
         }
-
         .expand-toggle {
             background: #007BFF;
             color: white;
@@ -136,7 +129,6 @@ $result = $conn->query($sql);
             border-radius: 4px;
             cursor: pointer;
         }
-
         .description-content {
             display: none;
             margin-top: 10px;
@@ -144,7 +136,6 @@ $result = $conn->query($sql);
             padding: 10px;
             border-radius: 5px;
         }
-
         .chat-link {
             background: green;
             color: white;
@@ -152,7 +143,6 @@ $result = $conn->query($sql);
             border-radius: 4px;
             text-decoration: none;
         }
-
         .download-btn {
             background: darkorange;
             color: white;
@@ -166,9 +156,7 @@ $result = $conn->query($sql);
 
 <header>
     <div style="font-size: 22px; font-weight: bold;">Admin Dashboard</div>
-
     <div style="display: flex; align-items: center; gap: 20px;">
-        <!-- 🔔 Notification Bell -->
         <div class="notif-container">
             <button id="notif-btn">🔔 <span id="notif-count"></span></button>
             <div id="notif-box">
@@ -178,8 +166,6 @@ $result = $conn->query($sql);
                 </div>
             </div>
         </div>
-
-        <!-- Logout -->
         <form method="post" action="admin_logout.php" style="margin:0;">
             <button class="logout-btn">Logout</button>
         </form>
@@ -200,7 +186,6 @@ $result = $conn->query($sql);
         <th>Posted</th>
         <th>Chat</th>
     </tr>
-
     <?php $i = 0; ?>
     <?php while ($row = $result->fetch(PDO::FETCH_ASSOC)): ?>
         <tr>
@@ -224,29 +209,23 @@ $result = $conn->query($sql);
                 <?php endif; ?>
             </td>
             <td><?= htmlspecialchars($row['created_at']) ?></td>
-            <td>
-                <a class="chat-link" href="admin_chat.php?task_id=<?= $row['id'] ?>">Chat</a>
-            </td>
+            <td><a class="chat-link" href="admin_chat.php?task_id=<?= $row['id'] ?>">Chat</a></td>
         </tr>
     <?php $i++; endwhile; ?>
 </table>
 
-<!-- 🔔 Sound -->
 <audio id="notif-sound" src="notif.mp3" preload="auto"></audio>
 
 <script>
-function toggleDescription(index) {
-    const content = document.getElementById("desc-" + index);
-    content.style.display = (content.style.display === "block") ? "none" : "block";
-}
-
 let notifMuted = false;
-document.getElementById("mute-btn")?.addEventListener("click", () => {
+let previousNotifCount = 0;
+
+document.getElementById("mute-btn").addEventListener("click", () => {
     notifMuted = !notifMuted;
     document.getElementById("mute-btn").textContent = notifMuted ? "🔇 Sound Off" : "🔊 Sound On";
 });
 
-document.getElementById("notif-btn")?.addEventListener("click", () => {
+document.getElementById("notif-btn").addEventListener("click", () => {
     const box = document.getElementById("notif-box");
     box.style.display = (box.style.display === "block") ? "none" : "block";
 });
@@ -267,8 +246,8 @@ function fetchNotifications() {
                 data.forEach(n => {
                     const li = document.createElement("li");
                     li.innerHTML = `
-                        <a href="${n.link}" style="text-decoration:none; color:#333;">
-                            <div style="padding:8px; border-bottom:1px solid #eee;">
+                        <a href="${n.link}">
+                            <div>
                                 <strong>${n.sender}</strong><br>
                                 <span>${n.message}</span><br>
                                 <small>${n.time}</small>
@@ -278,16 +257,24 @@ function fetchNotifications() {
                     notifList.appendChild(li);
                 });
 
-                if (!notifMuted) document.getElementById("notif-sound").play();
+                if (!notifMuted && count > previousNotifCount) {
+                    document.getElementById("notif-sound").play();
+                }
+                previousNotifCount = count;
             } else {
                 notifCount.style.display = "none";
                 notifList.innerHTML = "<li style='padding:10px; text-align:center;'>No new messages</li>";
+                previousNotifCount = 0;
             }
         });
 }
 
 fetchNotifications();
-setInterval(fetchNotifications, 30000);
+setInterval(fetchNotifications, 500);
+function toggleDescription(index) {
+    const content = document.getElementById("desc-" + index);
+    content.style.display = (content.style.display === "block") ? "none" : "block";
+}
 </script>
 
 </body>

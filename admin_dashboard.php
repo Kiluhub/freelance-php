@@ -42,19 +42,71 @@ $result = $conn->query($sql);
             padding: 20px;
         }
 
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #001f3f;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 6px;
+        }
+
         h2 {
             text-align: center;
-            margin-bottom: 30px;
+            margin: 40px 0 20px;
         }
 
         .logout-btn {
-            float: right;
             background: red;
             color: white;
             border: none;
             padding: 8px 14px;
             border-radius: 5px;
             cursor: pointer;
+        }
+
+        .notif-container {
+            position: relative;
+        }
+
+        #notif-btn {
+            background: none;
+            border: none;
+            font-size: 20px;
+            color: white;
+            cursor: pointer;
+        }
+
+        #notif-count {
+            color: white;
+            background: red;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 12px;
+            position: absolute;
+            top: -8px;
+            right: -10px;
+            display: none;
+        }
+
+        #notif-box {
+            display: none;
+            position: absolute;
+            right: 0;
+            background: #fff;
+            box-shadow: 0 0 8px rgba(0,0,0,0.2);
+            width: 300px;
+            z-index: 100;
+            border-radius: 5px;
+            overflow: auto;
+            max-height: 300px;
+        }
+
+        #notif-list {
+            list-style: none;
+            padding: 10px;
+            margin: 0;
         }
 
         table {
@@ -109,21 +161,32 @@ $result = $conn->query($sql);
             text-decoration: none;
         }
     </style>
-
-    <script>
-        function toggleDescription(index) {
-            const content = document.getElementById("desc-" + index);
-            content.style.display = (content.style.display === "block") ? "none" : "block";
-        }
-    </script>
 </head>
 <body>
 
-<form method="post" action="admin_logout.php">
-    <button class="logout-btn">Logout</button>
-</form>
+<header>
+    <div style="font-size: 22px; font-weight: bold;">Admin Dashboard</div>
 
-<h2>Admin Dashboard — Submitted Questions</h2>
+    <div style="display: flex; align-items: center; gap: 20px;">
+        <!-- 🔔 Notification Bell -->
+        <div class="notif-container">
+            <button id="notif-btn">🔔 <span id="notif-count"></span></button>
+            <div id="notif-box">
+                <ul id="notif-list"></ul>
+                <div style="text-align: center; padding: 5px;">
+                    <button id="mute-btn">🔊 Sound On</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Logout -->
+        <form method="post" action="admin_logout.php" style="margin:0;">
+            <button class="logout-btn">Logout</button>
+        </form>
+    </div>
+</header>
+
+<h2>Submitted Questions</h2>
 
 <table>
     <tr>
@@ -167,6 +230,65 @@ $result = $conn->query($sql);
         </tr>
     <?php $i++; endwhile; ?>
 </table>
+
+<!-- 🔔 Sound -->
+<audio id="notif-sound" src="notif.mp3" preload="auto"></audio>
+
+<script>
+function toggleDescription(index) {
+    const content = document.getElementById("desc-" + index);
+    content.style.display = (content.style.display === "block") ? "none" : "block";
+}
+
+let notifMuted = false;
+document.getElementById("mute-btn")?.addEventListener("click", () => {
+    notifMuted = !notifMuted;
+    document.getElementById("mute-btn").textContent = notifMuted ? "🔇 Sound Off" : "🔊 Sound On";
+});
+
+document.getElementById("notif-btn")?.addEventListener("click", () => {
+    const box = document.getElementById("notif-box");
+    box.style.display = (box.style.display === "block") ? "none" : "block";
+});
+
+function fetchNotifications() {
+    fetch("fetch_notifications.php")
+        .then(res => res.json())
+        .then(data => {
+            const count = data.length;
+            const notifCount = document.getElementById("notif-count");
+            const notifList = document.getElementById("notif-list");
+            notifList.innerHTML = "";
+
+            if (count > 0) {
+                notifCount.textContent = count;
+                notifCount.style.display = "inline-block";
+
+                data.forEach(n => {
+                    const li = document.createElement("li");
+                    li.innerHTML = `
+                        <a href="${n.link}" style="text-decoration:none; color:#333;">
+                            <div style="padding:8px; border-bottom:1px solid #eee;">
+                                <strong>${n.sender}</strong><br>
+                                <span>${n.message}</span><br>
+                                <small>${n.time}</small>
+                            </div>
+                        </a>
+                    `;
+                    notifList.appendChild(li);
+                });
+
+                if (!notifMuted) document.getElementById("notif-sound").play();
+            } else {
+                notifCount.style.display = "none";
+                notifList.innerHTML = "<li style='padding:10px; text-align:center;'>No new messages</li>";
+            }
+        });
+}
+
+fetchNotifications();
+setInterval(fetchNotifications, 30000);
+</script>
 
 </body>
 </html>

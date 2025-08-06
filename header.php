@@ -1,3 +1,19 @@
+<?php
+session_start();
+$isLoggedIn = isset($_SESSION['student_id']);
+$studentName = $_SESSION['student_name'] ?? 'Student';
+?>
+
+<!-- header.php -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SmartLearn</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
 <header>
     <div class="logo">SmartLearn</div>
     <nav>
@@ -7,19 +23,26 @@
         <a href="testimonials.php">Testimonials</a>
         <a href="contact.php">Contact</a>
         <a href="post_question.php" class="post-btn">Post a Question</a>
-        
+
         <!-- 🔔 Notification Bell -->
         <div style="position: relative; display: inline-block;">
-            <button id="notif-btn" style="background: none; border: none; font-size: 20px; cursor: pointer;">
-                🔔 <span id="notif-count" style="color: white; background: red; border-radius: 50%; padding: 2px 6px; font-size: 12px; position: absolute; top: -8px; right: -10px; display: none;"></span>
+            <button id="notif-btn">
+                🔔 <span id="notif-count"></span>
             </button>
-            <div id="notif-box" style="display: none; position: absolute; right: 0; background: #fff; box-shadow: 0 0 8px rgba(0,0,0,0.2); width: 300px; z-index: 100; border-radius: 5px; overflow: auto; max-height: 300px;">
-                <ul id="notif-list" style="list-style: none; padding: 10px; margin: 0;"></ul>
+            <div id="notif-box">
+                <ul id="notif-list"></ul>
                 <div style="text-align: center; padding: 5px;">
-                    <button id="mute-btn" style="font-size: 12px; background: none; border: none; cursor: pointer;">🔊 Sound On</button>
+                    <button id="mute-btn">🔊 Sound On</button>
                 </div>
             </div>
         </div>
+
+        <!-- 🔐 Login/Logout -->
+        <?php if ($isLoggedIn): ?>
+            <a href="logout.php">Logout (<?= htmlspecialchars($studentName) ?>)</a>
+        <?php else: ?>
+            <a href="student_login.php">Login</a>
+        <?php endif; ?>
     </nav>
 </header>
 

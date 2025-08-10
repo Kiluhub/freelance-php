@@ -15,7 +15,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         if ($user && password_verify($password, $user['password'])) {
             // ✅ Set session
             $_SESSION['student_id'] = $user['id'];
-            $_SESSION['student_name'] = $user['name'] ?? 'Student';
+            $_SESSION['student_name'] = $user['name'] ?? 'signed in';
 
             // ✅ Redirect to the form page (not handler)
             header("Location: post_question.php");

@@ -54,7 +54,7 @@
 <body>
 
 <div class="contact-section">
-    <h2>Contact SmartLearn</h2>
+    <h2>Contact SmartLearn Support</h2>
 
         <div class="contact-item">
         <i>📧</i> Email: <a href="mailto:smartlearn.connect@gmail.com">smartlearn.help@gmail.com</a>

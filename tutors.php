@@ -107,11 +107,11 @@
 
     <?php
     $tutors = [
-        ["name" => "Dr. Ali Hassan", "subject" => "Nursing & Healthcare", "rating" => 4.9, "img" => "tutor1.jpg", "desc" => "Over 8 years of experience in clinical case analysis and nursing essays."],
-        ["name" => "James Martin", "subject" => "Engineering & Math", "rating" => 4.7, "img" => "tutor6.jpg", "desc" => "Mechanical engineer helping students with technical problem solving."],
-        ["name" => "Maria Sanchez", "subject" => "Literature & Humanities", "rating" => 4.8, "img" => "tutor3.jpg", "desc" => "Passionate about creative writing, essays, and research reviews."],
-        ["name" => "Alice Martinez", "subject" => "Finance & Business", "rating" => 4.6, "img" => "tutor4.jpg", "desc" => "Expert in financial modeling, accounting, and market analysis."],
-        ["name" => "Chen Liu", "subject" => "Computer Science", "rating" => 5.0, "img" => "tutor5.jpg", "desc" => "Specializes in algorithms, data structures, and project help."]
+        ["name" => "Dr. Ali Hassan", "subject" => "Nursing & Healthcare", "rating" => 4.9, "img" => "tutor1.jpg", "desc" => "Over 8 years of experience in clinical case analysis and nursing essays.", "email" => "ali.abdii.hassan@gmail.com"],
+        ["name" => "James Martin", "subject" => "Engineering & Math", "rating" => 4.7, "img" => "tutor6.jpg", "desc" => "Mechanical engineer helping students with technical problem solving.", "email" => "james.kelly.martin01@gmail.com"],
+        ["name" => "Maria Sanchez", "subject" => "Literature & Humanities", "rating" => 4.8, "img" => "tutor3.jpg", "desc" => "Passionate about creative writing, essays, and research reviews.", "email" => "mariadorsanchez@gmail.com"],
+        ["name" => "Alice Martinez", "subject" => "Finance & Business", "rating" => 4.6, "img" => "tutor4.jpg", "desc" => "Expert in financial modeling, accounting, and market analysis.", "email" => "alicevivianmartinez@gmail.com"],
+        ["name" => "Chen Liu", "subject" => "Computer Science", "rating" => 5.0, "img" => "tutor5.jpg", "desc" => "Specializes in algorithms, data structures, and project help.", "email" => "chenchanliu1@gmail.com"]
     ];
 
     foreach ($tutors as $tutor):
@@ -123,7 +123,7 @@
                 <div class="tutor-subject"><?= htmlspecialchars($tutor['subject']) ?></div>
                 <div class="tutor-rating">⭐ <?= number_format($tutor['rating'], 1) ?>/5.0</div>
                 <div class="tutor-desc"><?= htmlspecialchars($tutor['desc']) ?></div>
-                <a href="contact.php" class="contact-link">Contact Tutor</a>
+                <a href="mailto:<?= htmlspecialchars($tutor['email']) ?>" class="contact-link">Contact Tutor</a>
                 <a href="post_question.php?tutor_name=<?= urlencode($tutor['name']) ?>" class="choose-link">Choose</a>
             </div>
         </div>

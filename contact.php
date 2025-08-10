@@ -65,10 +65,6 @@
         </div>
 
         <div class="contact-item">
-            <i>🌐</i> Website: <a href="https://smartlearn.com">smartlearn.com</a>
-        </div>
-
-        <div class="contact-item">
             <i>⏰</i> 24/7 Live Support  
         </div>
 
